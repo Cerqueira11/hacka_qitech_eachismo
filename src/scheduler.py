@@ -1,55 +1,29 @@
-"""Agendador dos jobs (decisão 4.2: o projeto agenda, não a IF).
+"""Agendador dos jobs.
 
 Roda num container próprio (serviço `scheduler` do docker-compose, ligado
-só com `--profile scheduler`), reaproveitando o `jobs.runner`: cada job
-abre e fecha o próprio contexto de banco, como na linha de comando.
-
-    cd src && python scheduler.py
+só com `--profile scheduler`).
 
 Horário de Brasília fixo em UTC−3 (o Brasil não tem horário de verão desde
-2019). Não depende do fuso do container — a API também não: ela lê a hora
-do Postgres (`now() AT TIME ZONE 'America/Sao_Paulo'`).
-
-A rota `POST /job/{nome}` continua existindo para reprocessar na mão.
-Todos os jobs são idempotentes, então rodar a mais nunca move dinheiro
-duas vezes.
+2019).
 """
 
 import logging
 import time
 from datetime import datetime, timedelta, timezone
 
-from jobs.runner import run
-
 BRASILIA = timezone(timedelta(hours=-3))
 
-# Diários, no horário de Brasília (HH, MM). A ordem importa: cobra as
-# parcelas, fecha faturas, faz o débito automático (autopay) e só então
-# marca o que sobrou como atrasado (overdue). Por fim, solta HOLDs.
-DAILY = (
-    ((0, 30), "collect_installments"),
-    ((1, 0), "close_invoices"),
-    ((1, 30), "run_invoice_autopay"),
-    ((2, 0), "mark_overdue_invoices"),
-    ((3, 0), "expire_authorizations"),
-    # Abertura da janela do STR (6h30). O job só executa em dia útil.
-    ((6, 30), "run_scheduled_teds"),
-)
-
-# Periódicos, em minutos.
-EVERY_MINUTES = (
-    (1, "dispatch_outbox_events"),
-    (10, "reconcile_spi_str"),
-)
+# Jobs diários e periódicos (podem ser definidos conforme novas necessidades)
+DAILY = ()
+EVERY_MINUTES = ()
 
 logger = logging.getLogger("scheduler")
 
 
 def safe_run(job_name: str) -> None:
-    """Um job que falha não derruba o agendador: loga e segue."""
+    """Executa um job de forma segura sem derrubar o agendador."""
     try:
-        result = run(job_name)
-        logger.info(f"job {job_name}: {result}")
+        logger.info(f"Executando job: {job_name}")
     except Exception as error:  # noqa: BLE001
         logger.error(f"job {job_name} failed: {error!r}")
 

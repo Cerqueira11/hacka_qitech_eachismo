@@ -1,29 +1,15 @@
 from fastapi import FastAPI
 
 from constants import check_variables
-from errors import register_error_handlers
 from errors.base_error import error_verification
+from errors.handlers import register_error_handlers
 from middlewares import (
     register_internal_token_middleware,
     register_request_context_middleware,
     register_request_logger_middleware,
     register_session_manager_middleware,
 )
-from resources import (
-    AccountResource,
-    CardAuthorizationResource,
-    CardResource,
-    CreditWalletResource,
-    CustomerResource,
-    HealthCheckResource,
-    InvoiceResource,
-    JobResource,
-    LoanResource,
-    PixResource,
-    TedResource,
-    TransferResource,
-    WebhookResource,
-)
+from resources import HealthCheckResource, PixTransactionResource
 from utils.logger import setup_logging
 
 
@@ -145,116 +131,18 @@ def create_app() -> FastAPI:
         methods=["GET"]
     )
 
-    # ────────────────────────────────────────────────────────────────
-    # Conta digital + microcrédito — contrato em docs/api-contract.md
-    # ────────────────────────────────────────────────────────────────
-    customer_resource = CustomerResource()
-    account_resource = AccountResource()
-    transfer_resource = TransferResource()
-    webhook_resource = WebhookResource()
-    pix_resource = PixResource()
-    ted_resource = TedResource()
-    wallet_resource = CreditWalletResource()
-    card_resource = CardResource()
-    authorization_resource = CardAuthorizationResource()
-    loan_resource = LoanResource()
-    invoice_resource = InvoiceResource()
-    job_resource = JobResource()
+    pix_transaction_resource = PixTransactionResource()
+    application.add_api_route(
+        "/pix/transaction",
+        pix_transaction_resource.on_post,
+        methods=["POST"]
+    )
 
-    # A · Clientes e contas
-    application.add_api_route("/customer", customer_resource.on_post, methods=["POST"])
-    application.add_api_route("/customer/{customer_key}", customer_resource.on_get_by_id, methods=["GET"])
-    application.add_api_route("/customer/{customer_key}", customer_resource.on_patch_by_id, methods=["PATCH"])
     application.add_api_route(
-        "/customer/{customer_key}/account", customer_resource.on_post_account, methods=["POST"]
+        "/pix/transaction/{id}",
+        pix_transaction_resource.on_get_by_id,
+        methods=["GET"]
     )
-    application.add_api_route(
-        "/customer/{customer_key}/account", customer_resource.on_get_accounts, methods=["GET"]
-    )
-    application.add_api_route(
-        "/customer/{customer_key}/relationship", customer_resource.on_post_relationship, methods=["POST"]
-    )
-    application.add_api_route("/account/{account_key}", account_resource.on_get_by_id, methods=["GET"])
-    application.add_api_route("/account/{account_key}/status", account_resource.on_patch_status, methods=["PATCH"])
-    application.add_api_route("/account/{account_key}/statement", account_resource.on_get_statement, methods=["GET"])
-
-    # B · Microcrédito — linha do patrimônio, contratação e pagamento
-    application.add_api_route(
-        "/customer/{customer_key}/credit_line", customer_resource.on_put_credit_line, methods=["PUT"]
-    )
-    application.add_api_route(
-        "/customer/{customer_key}/credit_line", customer_resource.on_get_credit_line, methods=["GET"]
-    )
-    application.add_api_route(
-        "/account/{account_key}/loan/simulation", loan_resource.on_post_simulation, methods=["POST"]
-    )
-    application.add_api_route("/account/{account_key}/loan", loan_resource.on_post, methods=["POST"])
-    application.add_api_route("/account/{account_key}/loan", loan_resource.on_get_by_account, methods=["GET"])
-    application.add_api_route("/loan/{loan_key}", loan_resource.on_get_by_id, methods=["GET"])
-    application.add_api_route("/loan/{loan_key}/payment", loan_resource.on_post_payment, methods=["POST"])
-
-    # C · Transferências
-    application.add_api_route("/transfer", transfer_resource.on_post, methods=["POST"])
-    application.add_api_route("/transfer/{transfer_key}", transfer_resource.on_get_by_id, methods=["GET"])
-    application.add_api_route("/account/{account_key}/transfer", account_resource.on_get_transfers, methods=["GET"])
-    application.add_api_route("/transfer/{transfer_key}/cancel", transfer_resource.on_patch_cancel, methods=["PATCH"])
-    application.add_api_route("/webhook/spi", webhook_resource.on_post_spi, methods=["POST"])
-    application.add_api_route("/webhook/str", webhook_resource.on_post_str, methods=["POST"])
-
-    # C2 · Pix e TED — rotas por trilho, aninhadas na conta, como na QI
-    # (/account/{key}/pix_transfer, /account/{key}/ted). A tabela é uma só.
-    application.add_api_route("/account/{account_key}/pix_key", pix_resource.on_post_key, methods=["POST"])
-    application.add_api_route("/account/{account_key}/pix_key", pix_resource.on_get_keys, methods=["GET"])
-    application.add_api_route(
-        "/account/{account_key}/pix_key/{pix_key_key}", pix_resource.on_delete_key, methods=["DELETE"]
-    )
-    application.add_api_route("/pix_key/{pix_key}", pix_resource.on_get_lookup, methods=["GET"])
-    application.add_api_route("/account/{account_key}/pix_transfer", pix_resource.on_post_transfer, methods=["POST"])
-    application.add_api_route(
-        "/account/{account_key}/incoming_transfer/{incoming_transfer_key}/reversal",
-        pix_resource.on_post_reversal,
-        methods=["POST"],
-    )
-    application.add_api_route("/account/{account_key}/ted_transfer", ted_resource.on_post, methods=["POST"])
-
-    # D · Cartões e faturas — carteira (QI wallet) separada do cartão
-    application.add_api_route("/account/{account_key}/credit_wallet", wallet_resource.on_post, methods=["POST"])
-    application.add_api_route("/credit_wallet/{wallet_key}", wallet_resource.on_get_by_id, methods=["GET"])
-    application.add_api_route("/credit_wallet/{wallet_key}/limit", wallet_resource.on_patch_limit, methods=["PATCH"])
-    application.add_api_route("/credit_wallet/{wallet_key}/status", wallet_resource.on_patch_status, methods=["PATCH"])
-    application.add_api_route("/credit_wallet/{wallet_key}/invoice", wallet_resource.on_get_invoices, methods=["GET"])
-    application.add_api_route("/invoice/{invoice_key}", wallet_resource.on_get_invoice, methods=["GET"])
-    application.add_api_route("/invoice/{invoice_key}/payment", invoice_resource.on_post_payment, methods=["POST"])
-    application.add_api_route("/invoice/{invoice_key}/charge", invoice_resource.on_post_charge, methods=["POST"])
-    application.add_api_route("/account/{account_key}/card", card_resource.on_post, methods=["POST"])
-    application.add_api_route("/account/{account_key}/card", card_resource.on_get_by_account, methods=["GET"])
-    application.add_api_route("/card/{card_key}", card_resource.on_get_by_id, methods=["GET"])
-    application.add_api_route("/card/{card_key}/activate", card_resource.on_patch_activate, methods=["PATCH"])
-    application.add_api_route("/card/{card_key}/status", card_resource.on_patch_status, methods=["PATCH"])
-
-    # D2 · Rede de cartão (papel da processadora). Autorização: 200 sempre.
-    application.add_api_route("/card/authorization", authorization_resource.on_post, methods=["POST"])
-    application.add_api_route(
-        "/card/authorization/{authorization_key}", authorization_resource.on_get, methods=["GET"]
-    )
-    application.add_api_route(
-        "/card/authorization/{authorization_key}/increment",
-        authorization_resource.on_post_increment,
-        methods=["POST"],
-    )
-    application.add_api_route(
-        "/card/authorization/{authorization_key}/reversal",
-        authorization_resource.on_post_reversal,
-        methods=["POST"],
-    )
-    application.add_api_route("/card/captures", authorization_resource.on_post_capture, methods=["POST"])
-    application.add_api_route("/card/refunds", authorization_resource.on_post_refund, methods=["POST"])
-
-    # E · Jobs agendados. Quem agenda é o src/scheduler.py (serviço
-    # `scheduler` do compose); esta rota fica para reprocessar na mão.
-    # Pela linha de comando: `python -m jobs.<nome>`.
-    application.add_api_route("/job/{job_name}", job_resource.on_post, methods=["POST"])
-
     register_error_handlers(application)
 
     return application

@@ -1,0 +1,87 @@
+{
+  "title": "PostPixTransaction",
+  "type": "object",
+  "properties": {
+    "amount": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "source_account_branch": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "source_account_number": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "source_document_number": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 20
+    },
+    "destination_account_branch": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "destination_account_number": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "destination_document_number": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 20
+    },
+    "source_device_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 50
+    },
+    "source_device_channel": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 50
+    },
+    "source_ip": {
+      "type": "string",
+      "minLength": 1
+    },
+    "source_geolocation": {
+      "type": "string"
+    },
+    "geolocation": {
+      "type": "object",
+      "properties": {
+        "latitude": {
+          "type": "number",
+          "minimum": -90,
+          "maximum": 90
+        },
+        "longitude": {
+          "type": "number",
+          "minimum": -180,
+          "maximum": 180
+        }
+      },
+      "required": [
+        "latitude",
+        "longitude"
+      ],
+      "additionalProperties": false
+    },
+    "transaction_date": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "amount",
+    "source_account_branch",
+    "source_account_number",
+    "destination_account_branch",
+    "destination_account_number",
+    "source_device_id",
+    "source_device_channel",
+    "source_ip"
+  ],
+  "additionalProperties": true
+}

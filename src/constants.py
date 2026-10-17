@@ -14,18 +14,14 @@ SERVICE_NAME = os.environ.get("SERVICE_NAME", "bootcamp-api")
 DATABASE_URL = os.environ.get("DATABASE_URL")
 INTERNAL_TOKEN = os.environ.get("INTERNAL_TOKEN")
 
-# A API de boletos: o serviço de fora que este projeto chama pra emitir
-# uma cobrança (veja src/connectors/). O endereço vem do ambiente, como
-# tudo aqui — na sua máquina ele aponta pro mock server do sábado 4; em
-# produção, apontaria pro serviço de verdade. O código não sabe a
-# diferença, e esse é o ponto.
-BANKSLIP_API_URL = os.environ.get("BANKSLIP_API_URL", "http://localhost:8080")
-BANKSLIP_API_INTERNAL_TOKEN = os.environ.get("BANKSLIP_API_INTERNAL_TOKEN", "default_token")
-
-# Quantos segundos esperar pelo serviço de boletos antes de desistir.
-# Todo connector TEM um timeout — o porquê está em
-# src/connectors/rest_connector.py.
-BANKSLIP_API_TIMEOUT = int(os.environ.get("BANKSLIP_API_TIMEOUT", "5"))
+# Liga a impressao de TODO SQL que o SQLAlchemy emite. Serve pra
+# responder "que consulta esse repository virou, afinal?" sem abrir o
+# banco do lado. Quem lê isto é o src/utils/logger.py, e o porquê de
+# nao ser o `echo=True` do create_engine esta explicado la.
+#
+# Padrao desligado: em producao isso escreveria uma linha de log por
+# comando, incluindo os valores enviados.
+DATABASE_ECHO = os.environ.get("DATABASE_ECHO", "false").lower() == "true"
 
 # Rotas públicas: não exigem o header INTERNAL-TOKEN. São as duas que
 # precisam responder pra quem ainda não tem token nenhum: a raiz, que
@@ -37,14 +33,6 @@ BYPASS_ENDPOINTS = [
 ]
 
 REQUIRED_VARIABLES = ["DATABASE_URL", "INTERNAL_TOKEN"]
-
-# ISPB desta instituição (fictício). É o que vai no end_to_end_id dos Pix
-# que saem daqui e o que o DICT mock devolve para as chaves da casa.
-OWN_ISPB = "13370001"
-
-# Guardrails do microcrédito produtivo orientado (Res. CMN 4.854/2020).
-# O banco tem os mesmos tetos em CHECK.
-MPO_MAX_LIMIT = 2_100_000          # R$ 21 mil por tomador na mesma IF
 
 
 def check_variables():

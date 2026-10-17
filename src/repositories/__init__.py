@@ -1,15 +1,9 @@
-from repositories.enumerator_repository import EnumeratorRepository
-from repositories.customer_repository import CustomerRepository
-from repositories.account_repository import AccountRepository
-from repositories.ledger_repository import LedgerLeg, LedgerRepository
-from repositories.transfer_repository import TransferRepository
-from repositories.incoming_transfer_repository import IncomingTransferRepository
-from repositories.outbox_repository import OutboxRepository
-from repositories.pix_key_repository import PixKeyRepository
-from repositories.card_repository import CardRepository
-from repositories.card_authorization_repository import CardAuthorizationRepository
-from repositories.credit_wallet_repository import CreditWalletRepository
-from repositories.invoice_repository import InvoiceRepository
-from repositories.calendar_repository import CalendarRepository
-from repositories.credit_line_repository import CreditLineRepository
-from repositories.loan_repository import LoanRepository
+from repositories.geolocation_repository import GeolocationRepository
+from repositories.status_result_history_repository import StatusResultHistoryRepository
+from repositories.transaction_repository import TransactionRepository
+
+__all__ = [
+    "GeolocationRepository",
+    "StatusResultHistoryRepository",
+    "TransactionRepository",
+]
