@@ -1,39 +1,39 @@
-from datetime import datetime
 from typing import List, Optional
 from uuid import UUID
 
 from database import Context
-from models import TransactionHistory
+from dtos.pix_transaction_input import PixTransactionInput
+from models import AccountNode, Geolocation, TransactionHistory
 
 
 class TransactionRepository:
-    """A camada que fala com a tabela transaction_history."""
+    """A camada que fala com a tabela transaction_history (as arestas do grafo)."""
 
     def __init__(self, context: Context) -> None:
         self.session = context.db_session
 
     def create(
         self,
-        transaction_data: dict,
-        geolocation_id: Optional[UUID] = None,
+        data: PixTransactionInput,
+        source_account: AccountNode,
+        destination_account: AccountNode,
+        geolocation: Optional[Geolocation] = None,
+        risk_score: Optional[float] = None,
     ) -> TransactionHistory:
-        tx = TransactionHistory()
-        tx.amount = transaction_data["amount"]
-        tx.source_account_branch = transaction_data["source_account_branch"]
-        tx.source_account_number = transaction_data["source_account_number"]
-        tx.destination_account_branch = transaction_data["destination_account_branch"]
-        tx.destination_account_number = transaction_data["destination_account_number"]
-        tx.source_device_id = transaction_data["source_device_id"]
-        tx.source_device_channel = transaction_data["source_device_channel"]
-        tx.source_ip = transaction_data["source_ip"]
-        tx.source_geolocation = geolocation_id
-
-        if "transaction_date" in transaction_data and transaction_data["transaction_date"]:
-            if isinstance(transaction_data["transaction_date"], str):
-                tx.transaction_date = datetime.fromisoformat(transaction_data["transaction_date"])
-            else:
-                tx.transaction_date = transaction_data["transaction_date"]
-
+        tx = TransactionHistory(
+            transaction_id=data.transaction_id,
+            amount=data.amount,
+            source_device_id=data.device_id,
+            source_device_channel=data.channel,
+            source_ip=data.ip,
+            transaction_date=data.transaction_date,
+            risk_score=risk_score,
+        )
+        # Relações em vez de ids: as chaves geradas no INSERT só existem
+        # depois do flush, e o SQLAlchemy resolve a ordem sozinho.
+        tx.source_account = source_account
+        tx.destination_account = destination_account
+        tx.geolocation = geolocation
         self.session.add(tx)
         return tx
 
@@ -44,29 +44,26 @@ class TransactionRepository:
             .first()
         )
 
-    def list_by_source_account(
-        self, branch: int, number: int, limit: int = 100
-    ) -> List[TransactionHistory]:
+    def get_by_transaction_id(self, transaction_id: str) -> Optional[TransactionHistory]:
         return (
             self.session.query(TransactionHistory)
-            .filter(
-                TransactionHistory.source_account_branch == branch,
-                TransactionHistory.source_account_number == number,
-            )
+            .filter(TransactionHistory.transaction_id == transaction_id)
+            .first()
+        )
+
+    def list_by_source_account(self, account_id: UUID, limit: int = 100) -> List[TransactionHistory]:
+        return (
+            self.session.query(TransactionHistory)
+            .filter(TransactionHistory.source_account_id == account_id)
             .order_by(TransactionHistory.transaction_date.desc())
             .limit(limit)
             .all()
         )
 
-    def list_by_destination_account(
-        self, branch: int, number: int, limit: int = 100
-    ) -> List[TransactionHistory]:
+    def list_by_destination_account(self, account_id: UUID, limit: int = 100) -> List[TransactionHistory]:
         return (
             self.session.query(TransactionHistory)
-            .filter(
-                TransactionHistory.destination_account_branch == branch,
-                TransactionHistory.destination_account_number == number,
-            )
+            .filter(TransactionHistory.destination_account_id == account_id)
             .order_by(TransactionHistory.transaction_date.desc())
             .limit(limit)
             .all()

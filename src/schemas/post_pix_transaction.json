@@ -2,86 +2,143 @@
   "title": "PostPixTransaction",
   "type": "object",
   "properties": {
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64,
+      "pattern": "^[A-Za-z0-9._:-]+$"
+    },
     "amount": {
+      "description": "Valor em centavos.",
       "type": "integer",
       "minimum": 1
     },
-    "source_account_branch": {
-      "type": "integer",
-      "minimum": 1
-    },
-    "source_account_number": {
-      "type": "integer",
-      "minimum": 1
-    },
-    "source_document_number": {
-      "type": "string",
-      "minLength": 1,
-      "maxLength": 20
-    },
-    "destination_account_branch": {
-      "type": "integer",
-      "minimum": 1
-    },
-    "destination_account_number": {
-      "type": "integer",
-      "minimum": 1
-    },
-    "destination_document_number": {
-      "type": "string",
-      "minLength": 1,
-      "maxLength": 20
-    },
-    "source_device_id": {
-      "type": "string",
-      "minLength": 1,
-      "maxLength": 50
-    },
-    "source_device_channel": {
-      "type": "string",
-      "minLength": 1,
-      "maxLength": 50
-    },
-    "source_ip": {
+    "transaction_date": {
+      "description": "ISO-8601 com fuso horário, ex.: 2026-10-17T22:15:00-03:00.",
       "type": "string",
       "minLength": 1
     },
-    "source_geolocation": {
-      "type": "string"
-    },
-    "geolocation": {
+    "source_account": {
       "type": "object",
       "properties": {
-        "latitude": {
-          "type": "number",
-          "minimum": -90,
-          "maximum": 90
+        "participant": {
+          "description": "Opcional: a origem é sempre desta instituição (INSTITUTION_ISPB).",
+          "type": "string",
+          "pattern": "^[0-9]{8}$"
         },
-        "longitude": {
-          "type": "number",
-          "minimum": -180,
-          "maximum": 180
+        "branch": {
+          "type": "string",
+          "pattern": "^[0-9]{1,4}$"
+        },
+        "account_number": {
+          "type": "string",
+          "pattern": "^[0-9]{1,20}$"
+        },
+        "opening_date": {
+          "type": "string",
+          "minLength": 1
+        },
+        "owner": {
+          "type": "object",
+          "properties": {
+            "document_number": {
+              "type": "string",
+              "minLength": 11,
+              "maxLength": 18,
+              "pattern": "^[0-9A-Za-z./-]+$"
+            }
+          },
+          "required": ["document_number"],
+          "additionalProperties": false
         }
       },
-      "required": [
-        "latitude",
-        "longitude"
-      ],
+      "required": ["branch", "account_number", "opening_date", "owner"],
       "additionalProperties": false
     },
-    "transaction_date": {
-      "type": "string"
+    "destination_account": {
+      "type": "object",
+      "properties": {
+        "participant": {
+          "description": "ISPB da instituição de destino.",
+          "type": "string",
+          "pattern": "^[0-9]{8}$"
+        },
+        "branch": {
+          "type": "string",
+          "pattern": "^[0-9]{1,4}$"
+        },
+        "account_number": {
+          "type": "string",
+          "pattern": "^[0-9]{1,20}$"
+        },
+        "opening_date": {
+          "type": "string",
+          "minLength": 1
+        },
+        "owner": {
+          "type": "object",
+          "properties": {
+            "document_number": {
+              "type": "string",
+              "minLength": 11,
+              "maxLength": 18,
+              "pattern": "^[0-9A-Za-z./-]+$"
+            }
+          },
+          "required": ["document_number"],
+          "additionalProperties": false
+        }
+      },
+      "required": ["participant", "branch", "account_number", "opening_date", "owner"],
+      "additionalProperties": false
+    },
+    "source": {
+      "type": "object",
+      "properties": {
+        "device_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 50
+        },
+        "channel": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 50
+        },
+        "ip": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 45
+        },
+        "geolocation": {
+          "type": "object",
+          "properties": {
+            "latitude": {
+              "type": "number",
+              "minimum": -90,
+              "maximum": 90
+            },
+            "longitude": {
+              "type": "number",
+              "minimum": -180,
+              "maximum": 180
+            }
+          },
+          "required": ["latitude", "longitude"],
+          "additionalProperties": false
+        }
+      },
+      "required": ["device_id", "channel", "ip"],
+      "additionalProperties": false
     }
   },
   "required": [
+    "id",
     "amount",
-    "source_account_branch",
-    "source_account_number",
-    "destination_account_branch",
-    "destination_account_number",
-    "source_device_id",
-    "source_device_channel",
-    "source_ip"
+    "transaction_date",
+    "source_account",
+    "destination_account",
+    "source"
   ],
-  "additionalProperties": true
+  "additionalProperties": false
 }

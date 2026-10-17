@@ -14,6 +14,12 @@ SERVICE_NAME = os.environ.get("SERVICE_NAME", "bootcamp-api")
 DATABASE_URL = os.environ.get("DATABASE_URL")
 INTERNAL_TOKEN = os.environ.get("INTERNAL_TOKEN")
 
+# ISPB desta instituição. A conta de origem de todo Pix analisado aqui é
+# nossa, então o payload não manda o participante dela: ele vem daqui.
+# É parte da identidade do nó no grafo (ISPB + agência + conta). O padrão
+# "00000000" é só para rodar localmente; configure o ISPB real no ambiente.
+INSTITUTION_ISPB = os.environ.get("INSTITUTION_ISPB", "00000000")
+
 # Liga a impressao de TODO SQL que o SQLAlchemy emite. Serve pra
 # responder "que consulta esse repository virou, afinal?" sem abrir o
 # banco do lado. Quem lê isto é o src/utils/logger.py, e o porquê de

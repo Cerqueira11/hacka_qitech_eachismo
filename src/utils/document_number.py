@@ -64,3 +64,62 @@ def is_valid_cpf(document_number: str) -> bool:
             return False
 
     return True
+
+
+CNPJ_LENGTH = 14
+CNPJ_FIRST_WEIGHTS = [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]
+CNPJ_SECOND_WEIGHTS = [6] + CNPJ_FIRST_WEIGHTS
+DOCUMENT_MASK_CHARACTERS = ".-/ "
+
+
+def normalize_document_number(document_number: str) -> str:
+    """Tira a máscara ('123.456.789-09' -> '12345678909') e põe letras em maiúsculo.
+
+    Letras ficam porque o CNPJ alfanumérico (IN RFB 2.229/2024) pode ter
+    letras nas 12 primeiras posições.
+    """
+    cleaned = ""
+    for character in document_number:
+        if character not in DOCUMENT_MASK_CHARACTERS:
+            cleaned = cleaned + character.upper()
+    return cleaned
+
+
+def _cnpj_check_digit(characters: str, weights: list) -> int:
+    # No CNPJ alfanumérico o valor de cada caractere é o código ASCII menos 48:
+    # '0'..'9' continuam valendo 0..9, 'A' vale 17, 'B' 18 e assim por diante.
+    total = 0
+    for character, weight in zip(characters, weights):
+        total = total + (ord(character) - 48) * weight
+    remainder = total % 11
+    if remainder < 2:
+        return 0
+    return 11 - remainder
+
+
+def is_valid_cnpj(document_number: str) -> bool:
+    """Diz se um CNPJ (numérico ou alfanumérico) tem os dígitos verificadores certos."""
+    cnpj = normalize_document_number(document_number)
+    if len(cnpj) != CNPJ_LENGTH:
+        return False
+
+    body = cnpj[:12]
+    check_digits = cnpj[12:]
+    if not body.isalnum() or not body.isascii() or not check_digits.isdigit():
+        return False
+    if cnpj == cnpj[0] * CNPJ_LENGTH:
+        return False
+
+    first = _cnpj_check_digit(body, CNPJ_FIRST_WEIGHTS)
+    second = _cnpj_check_digit(body + str(first), CNPJ_SECOND_WEIGHTS)
+    return check_digits == f"{first}{second}"
+
+
+def person_type_of(document_number: str):
+    """'PF' para CPF válido, 'PJ' para CNPJ válido, None se não for nenhum dos dois."""
+    normalized = normalize_document_number(document_number)
+    if len(normalized) == CPF_LENGTH and normalized.isdigit() and is_valid_cpf(normalized):
+        return "PF"
+    if len(normalized) == CNPJ_LENGTH and is_valid_cnpj(normalized):
+        return "PJ"
+    return None

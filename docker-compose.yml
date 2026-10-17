@@ -35,6 +35,8 @@ services:
       # A senha que protege os endpoints internos. O padrao vale pra
       # estudar; num sistema de verdade, isso nunca teria valor padrao.
       INTERNAL_TOKEN: ${INTERNAL_TOKEN:-default_token}
+      # ISPB desta instituicao: identifica a conta de origem no grafo antifraude.
+      INSTITUTION_ISPB: ${INSTITUTION_ISPB:-00000000}
       # A API de boletos (assunto do sabado 4). Variavel que nao esta
       # nesta lista NAO CHEGA no container: o compose repassa o que
       # esta escrito aqui, e mais nada. Sem estas tres linhas, mexer
@@ -85,6 +87,7 @@ services:
       APP_ENV: ${APP_ENV:-local}
       SERVICE_NAME: bootcamp-scheduler
       INTERNAL_TOKEN: ${INTERNAL_TOKEN:-default_token}
+      INSTITUTION_ISPB: ${INSTITUTION_ISPB:-00000000}
       BANKSLIP_API_URL: ${BANKSLIP_API_URL:-http://localhost:8080}
       BANKSLIP_API_INTERNAL_TOKEN: ${BANKSLIP_API_INTERNAL_TOKEN:-default_token}
       BANKSLIP_API_TIMEOUT: ${BANKSLIP_API_TIMEOUT:-5}

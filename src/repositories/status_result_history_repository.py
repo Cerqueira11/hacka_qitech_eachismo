@@ -1,9 +1,8 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
-from uuid import UUID
 
 from database import Context
-from models import StatusResultHistory
+from models import Metadata, StatusResultHistory, TransactionHistory
 
 
 class StatusResultHistoryRepository:
@@ -14,18 +13,25 @@ class StatusResultHistoryRepository:
 
     def create(
         self,
-        key_pix: int,
+        transaction: TransactionHistory,
         status: str,
+        metadata: Optional[Metadata] = None,
         date: Optional[datetime] = None,
-        metadata_key: Optional[UUID] = None,
     ) -> StatusResultHistory:
-        history = StatusResultHistory()
-        history.key_pix = key_pix
-        history.status = status
-        if date:
-            history.date = date
-        history.metadata_key = metadata_key
+        """Registra um veredito ligado à transação pela relação, não pelo key_pix.
 
+        O key_pix só existe depois do INSERT da transação. Pendurando o
+        veredito na relação, o SQLAlchemy grava a transação primeiro e preenche
+        a chave estrangeira sozinho no flush.
+
+        `date` é quando o veredito foi dado (agora), não quando o Pix aconteceu.
+        """
+        history = StatusResultHistory(
+            status=status,
+            date=date or datetime.now(timezone.utc),
+            metadata_item=metadata,
+        )
+        transaction.status_history.append(history)
         self.session.add(history)
         return history
 

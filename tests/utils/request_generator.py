@@ -1,4 +1,5 @@
 from os import environ
+
 from tests.utils.requisition import ClientRequisition, BaseConnectorResponse
 
 INTERNAL_TOKEN = environ.get("INTERNAL_TOKEN", "default_token")
@@ -18,10 +19,10 @@ class RequestGenerator:
         return response.response_status, response.response_json
 
     @staticmethod
-    def GET_pix_transaction(key_pix: int) -> BaseConnectorResponse:
+    def GET_pix_transaction(transaction_id: str) -> BaseConnectorResponse:
         response = ClientRequisition.send(
             "GET",
-            f"/pix/transaction/{key_pix}",
+            f"/pix/transaction/{transaction_id}",
             headers={"INTERNAL-TOKEN": INTERNAL_TOKEN},
         )
         return response.response_status, response.response_json

@@ -1,0 +1,293 @@
+
+==========================================================================================
+CAMINHO DE UM POST /pix/transaction NA SOLUÇÃO DE RISCO
+==========================================================================================
+
+Convenções
+  - Valores em centavos (como no payload): R$ 200 = 20000, R$ 1.000 = 100000.
+  - Horários convertidos para America/Sao_Paulo a partir de transaction_date.
+  - "Somas" e "contagens" usam só Pix já gravados com status approved ou
+    two_factor_required (pendente). Pix rejected não consomem limite.
+  - Termos do DICT conforme a API v2.12.1 do BCB:
+      marcação de fraude: Status REGISTERED | CANCELLED
+                          FraudType APPLICATION_FRAUD | MULE_ACCOUNT (laranja) |
+                                    SCAMMER_ACCOUNT (golpista) | OTHER | UNKNOWN
+      notificação de infração ("em análise"): Status OPEN | ACKNOWLEDGED (abertas)
+                          SituationType SCAM | ACCOUNT_TAKEOVER (conta roubada) |
+                                        COERCION | FRAUDULENT_ACCESS | OTHER
+  - Valores marcados com (a calibrar) são ponto de partida, não decisão final.
+  - Saída possível: approved | two_factor_required | rejected. Erros de entrada
+    (403/400/422) NÃO são veredito: não gravam nada e não entram no grafo.
+
+
+Visão geral
+------------------------------------------------------------------------------------------
+
+  POST
+   │
+   ├─ ETAPA 0  Portaria ............ token, schema, validação, idempotência
+   │            (falhou → erro HTTP, fim)
+   ├─ ETAPA 1  Contexto ............ monta as features ANTES de gravar o Pix
+   ├─ ETAPA 2  Regras R1..R8 ....... cada regra devolve {ação, peso, motivo}
+   ├─ ETAPA 3  Grafo ............... influência da vizinhança na origem e no destino
+   ├─ ETAPA 4  Score ............... combina pesos das regras + grafo → risk_score 0..1
+   ├─ ETAPA 5  Decisão ............. ações fixas + limiares do score → status
+   └─ ETAPA 6  Gravação ............ aresta, veredito, metadata, risco dos nós → 201
+
+
+ETAPA 0 — Portaria (já implementado)
+------------------------------------------------------------------------------------------
+
+  0.1  INTERNAL-TOKEN ausente ou errado ............ 403 QIT000002  (fim)
+  0.2  Corpo fora do schema (campo faltando,
+       tipo errado, campo desconhecido) ............ 400 QIT000001  (fim)
+  0.3  Validação semântica:
+         CPF/CNPJ com dígito verificador inválido .. 422 QIT001008  (fim)
+         transaction_date sem fuso / inválida ...... 422 QIT001007  (fim)
+         opening_date inválida ou depois do Pix .... 422 QIT001009  (fim)
+         IP inválido ............................... 422 QIT001010  (fim)
+  0.4  Idempotência: "id" já analisado ............. 200 com o MESMO veredito (fim)
+  0.5  Upsert dos nós (account_node) de origem e destino.
+       Origem usa INSTITUTION_ISPB; destino usa destination_account.participant.
+
+  Passou → ETAPA 1
+
+
+ETAPA 1 — Contexto (tudo calculado ANTES de gravar o Pix)
+------------------------------------------------------------------------------------------
+
+  Do payload
+    amount, hora local, person_type da origem e do destino (PF/PJ),
+    device_id, ip, geolocation (opcional), opening_date das duas contas.
+
+  Do nosso banco
+    device_registered ........ existe registered_device(documento origem, device_id)?
+    soma_dia_disp_novo ....... soma do dia (00h–24h) da origem em dispositivos não cadastrados
+    soma_noturna ............. soma da origem no período noturno corrente (20h–6h)
+    owner_conhecido .......... documento já registrado no account_node de cada conta
+    vinculados_origem/destino  person_link: CNPJs do CPF, ou CPFs por trás do CNPJ
+    historico_origem ......... últimas geolocalizações, ln(amount) de 90 dias,
+                               Pix anteriores para o mesmo destino, contagens 10 min/1 h
+    historico_destino ........ origens distintas que pagaram o destino na última 1 h
+    historico_device ......... contas de origem distintas no mesmo device em 24 h
+
+  Do DICT (mock)
+    entry_destino ............ conta e titular vinculados no DICT
+    stats_origem/destino ..... GET /persons/{TaxIdNumber}/statistics
+                               (contadores d90/m12 por FraudType e OpenReports)
+    stats_vinculados ......... mesmas estatísticas para cada documento vinculado
+    infracoes_abertas ........ SituationType das notificações OPEN/ACKNOWLEDGED
+
+  DICT indisponível (timeout/erro)
+    R3 e R4 não podem ser avaliadas → ação 2FA + peso 0.30 motivo "dict_indisponivel".
+    Nunca aprovar às cegas, nunca rejeitar por falha nossa.
+
+
+ETAPA 2 — Regras
+------------------------------------------------------------------------------------------
+
+  Todas as regras rodam, mesmo depois de um REJECT: assim o metadata registra todos
+  os motivos e a aresta recebe o peso real. Cada regra devolve:
+
+      { regra, ação: NENHUMA | 2FA | REJECT, peso: 0..1 (ou desconto), motivo }
+
+  R1 — Dispositivo não cadastrado
+    device_registered = sim ..................................... passa, peso 0
+    não cadastrado e amount <= 20000
+      e soma_dia_disp_novo + amount <= 100000 ................... passa, peso 0.15
+    não cadastrado e (amount > 20000
+      ou soma_dia_disp_novo + amount > 100000) .................. REJECT
+                                                                   motivo "limite_dispositivo_novo"
+
+  R2 — Limite noturno (20h–6h)
+    fora do período noturno ..................................... passa, peso 0
+    noturno e soma_noturna + amount <= 100000 ................... passa, peso 0
+    noturno e soma_noturna + amount > 100000 .................... REJECT
+                                                                   motivo "limite_noturno"
+    Origem PJ: limite noturno próprio (a definir); até lá, o mesmo de PF.
+
+  R3 — Vínculo conta x documento
+    Destino: entry_destino (participant, branch, account_number, titular)
+             igual ao payload ................................... passa, peso 0
+             conta não encontrada no DICT ....................... REJECT
+                                                                   motivo "conta_nao_encontrada"
+             titular diferente do payload ....................... REJECT
+                                                                   motivo "vinculo_nao_confere"
+    Origem e destino: account_node já existia com outro documento . REJECT
+                                                                   motivo "vinculo_nao_confere"
+    Obs.: o DICT consulta por chave Pix. Sem chave no payload, o mock
+    consulta por conta.
+
+  R4 — Fraude na pessoa (titular + vinculados CPF<->CNPJ)
+    ORIGEM
+      titular com marcação REGISTERED MULE_ACCOUNT, SCAMMER_ACCOUNT
+        ou APPLICATION_FRAUD (d90 ou m12 > 0) ..................... REJECT, piso de score 1.0
+                                                                   motivo "origem_marcada"
+      titular com infração aberta SCAM (laranja/golpe em análise) . REJECT
+                                                                   motivo "origem_em_analise"
+      titular com infração aberta ACCOUNT_TAKEOVER (conta roubada) 2FA, peso 0.40
+                                                                   motivo "origem_conta_roubada"
+      vinculado com marcação MULE/SCAMMER/APPLICATION_FRAUD ....... 2FA, peso 0.60
+                                                                   motivo "vinculado_marcado"
+      marcação OTHER ou UNKNOWN .................................. passa, peso 0.30
+      nada encontrado ............................................ passa, peso 0
+    DESTINO
+      titular com marcação REGISTERED MULE_ACCOUNT, SCAMMER_ACCOUNT
+        ou APPLICATION_FRAUD ...................................... REJECT, piso de score 1.0
+                                                                   motivo "destino_marcado"
+      titular com infração aberta (qualquer SituationType):
+        nunca bloqueia por si só:
+          amount <= 50000 (limite menor, a calibrar) ............. 2FA, peso 0.40
+          amount  > 50000 ........................................ 2FA, peso 0.70
+                                                                   motivo "destino_em_analise"
+      vinculado com marcação MULE/SCAMMER/APPLICATION_FRAUD ....... 2FA, peso 0.60
+                                                                   motivo "vinculado_marcado"
+      marcação OTHER ou UNKNOWN .................................. passa, peso 0.30
+      nada encontrado ............................................ passa, peso 0
+    Ponto de decisão: "destino em análise nunca bloqueia" vale para a regra. Se o
+    score final passar do limiar de reject (ETAPA 5), o Pix é rejeitado mesmo assim.
+    Se o time quiser garantir que isso nunca aconteça, o score desse caso precisa de
+    teto em 0.84.
+
+  R5 — Localização fora do habitual (precisa de >= 3 geolocalizações no histórico)
+    distância do centróide das últimas 10 > 100 km
+      ou velocidade desde o último Pix > 900 km/h ............... 2FA, peso 0.30
+                                                                   motivo "localizacao_atipica"
+    payload sem geolocation ...................................... passa, peso 0.10
+    histórico insuficiente (< 3) ................................. passa, peso 0
+
+  R6 — Valor fora do padrão (precisa de >= 5 Pix nos últimos 90 dias)
+    z = (ln(amount) - média ln) / desvio ln, k = 3 (a calibrar)
+    z <= 3 ....................................................... passa, peso 0
+    z  > 3 ....................................................... passa, peso min(0.40, 0.10·(z-2))
+                                                                   motivo "valor_atipico"
+    histórico insuficiente e amount > 500000 (R$ 5.000) .......... passa, peso 0.10
+
+  R7 — Pagamento periódico (só se R6 acionou)
+    >= 3 Pix aprovados para o mesmo destino em 180 dias,
+    intervalo regular (7/15/30 dias ±3), valor ±20% da mediana,
+    primeiro deles há mais de 60 dias ............................ desconto 0.30 (teto 0.50)
+                                                                   motivo "pagamento_recorrente"
+    caso contrário ............................................... sem desconto
+
+  R8 — Velocity
+    origem com >= 5 Pix em 10 min ou >= 10 em 1 h ................ 2FA, peso 0.35
+                                                                   motivo "velocity_origem"
+    destino com >= 10 origens distintas em 1 h e conta < 30 dias . passa, peso 0.30
+                                                                   motivo "fan_in_destino"
+    mesmo device_id em >= 3 contas de origem em 24 h ............. passa, peso 0.30
+                                                                   motivo "device_compartilhado"
+
+  Sinais extras (sem ação fixa, só peso)
+    conta destino aberta há menos de 30 dias ..................... peso 0.20 "destino_conta_nova"
+    primeiro Pix da origem para este destino ..................... peso 0.10 "destino_desconhecido"
+
+
+ETAPA 3 — Grafo (nó = conta, aresta = Pix com risk_score)
+------------------------------------------------------------------------------------------
+
+  Entrada
+    source_account_id, destination_account_id, as_of = transaction_date
+    profundidade máxima K = 3, janela = 90 dias (só arestas ANTES de as_of)
+    decaimento por salto λ = 0.5, decaimento no tempo τ = 30 dias
+    corte de hub: não expande por nós com degree > 200
+
+  Para cada vizinho u a d saltos:
+    contribuição(u) = λ^d · R(u) · e^(-Δt/τ) / log2(2 + degree(u))
+      R(u)  = risco do nó (account_node.risk_score)
+      Δt    = tempo desde a aresta mais recente que levou até u
+
+  Saída
+    I_origem  = max das contribuições na vizinhança da origem
+    I_destino = max das contribuições na vizinhança do destino
+    graph_evidence = os vizinhos que mais contribuíram (conta, distância, risco)
+
+  Usa max e não soma: 100 vizinhos levemente arriscados não viram "fraude", e a
+  explicação aponta um vizinho específico.
+
+
+ETAPA 4 — Cálculo do score
+------------------------------------------------------------------------------------------
+
+  O que o cálculo recebe:
+
+    {
+      "rule_hits": [
+        {"rule": "R1", "action": "NONE",       "weight": 0.15, "reason": "dispositivo_nao_cadastrado"},
+        {"rule": "R4", "action": "TWO_FACTOR", "weight": 0.40, "reason": "destino_em_analise"},
+        ...
+      ],
+      "discount": 0.30,                 // só R7; teto 0.50
+      "floor": 1.0,                     // só R4 marcado (origem/destino); senão null
+      "graph": {"source": I_origem, "destination": I_destino, "evidence": [...]}
+    }
+
+  Cálculo:
+    rules_score = (1 - Π(1 - peso_i)) · (1 - discount)        noisy-OR dos pesos
+    risk_score  = 1 - (1 - rules_score) · (1 - 0.5·I_origem) · (1 - 0.8·I_destino)
+    se floor:   risk_score = max(risk_score, floor)
+    REJECT por R3: risk_score = max(risk_score, 0.80)
+    REJECT por R1/R2: sem piso (é limite regulatório, não indício de fraude)
+
+  O destino pesa mais (0.8) que a origem (0.5): o dinheiro do golpe sai para a
+  conta de destino, e a origem costuma ser a vítima.
+
+
+ETAPA 5 — Decisão
+------------------------------------------------------------------------------------------
+
+  Na ordem (a primeira condição verdadeira define o status):
+    1. alguma regra com ação REJECT ................................ rejected
+    2. risk_score >= 0.85 (a calibrar) ............................. rejected
+    3. alguma regra com ação 2FA ou risk_score >= 0.50 ............. two_factor_required
+    4. caso contrário .............................................. approved
+
+
+ETAPA 6 — Gravação (uma transação de banco) e resposta
+------------------------------------------------------------------------------------------
+
+  1. geolocation (se veio)
+  2. transaction_history com risk_score = peso da aresta (inclusive se rejected:
+     tentativa também é evidência)
+  3. metadata: risk_score, rules_score, graph_source_score, graph_destination_score,
+     rule_hits, graph_evidence, engine_version
+  4. status_result_history: status + metadata_key
+  5. atualização dos nós:
+       account_node.external_risk ← risco vindo do DICT (1.0 marcado, 0.6 em análise)
+       R(destino) ← max(external_risk, 0.3·risk_score + 0.7·R(destino))
+       R(origem)  ← max(external_risk, 0.15·risk_score + 0.85·R(origem))
+       degree     ← +1 se for a primeira aresta entre as duas contas
+  6. commit → 201 {"key", "status", "metadata": {"risk_score", "reasons"}}
+
+  Depois do POST (fora deste fluxo)
+    - two_factor_required: o resultado do 2FA entra como novo status no
+      status_result_history (approved ou rejected).
+    - Fraude confirmada depois: aresta vai para 1.0 e o destino recebe
+      external_risk = 1.0, o que se propaga nas próximas análises.
+    - Job diário: aplica o decaimento no tempo em R(u).
+
+
+Exemplo: o payload pix-000123
+------------------------------------------------------------------------------------------
+
+  amount 150000 (R$ 1.500), 22:15 em Brasília, origem PF, device dvc-9f2c71a8,
+  destino aberto em 2026-10-10 (7 dias antes do Pix).
+
+  Supondo um dispositivo nunca cadastrado e DICT limpo:
+    R1  não cadastrado e 150000 > 20000 .............. REJECT "limite_dispositivo_novo"
+    R2  noturno e 0 + 150000 > 100000 ................ REJECT "limite_noturno"
+    R3  vínculo confere .............................. peso 0
+    R4  nada encontrado .............................. peso 0
+    R5  sem histórico ................................ peso 0
+    R6  sem histórico, amount <= 500000 .............. peso 0
+    R8  nada ......................................... peso 0
+    extra destino_conta_nova (7 dias) ................ peso 0.20
+    extra destino_desconhecido ....................... peso 0.10
+    grafo sem vizinhos ............................... I_origem = I_destino = 0
+
+    rules_score = 1 - (0.8 · 0.9) = 0.28 → risk_score = 0.28 (sem piso: R1/R2 são limites)
+    status = rejected (ação REJECT de R1 e R2)
+
+  Com o dispositivo cadastrado, o Pix continua rejected por R2 (R$ 1.500 de
+  noite). Durante o dia, com dispositivo cadastrado, ficaria risk_score 0.28 →
+  approved.
