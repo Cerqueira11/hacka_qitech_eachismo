@@ -2,55 +2,37 @@
   "unavailable_documents": [],
   "entries": {},
   "persons": {
-    "97848018415": {
-      "FraudMarkers": {
-        "OtherFrauds": {
-          "d90": 0,
-          "m12": 1,
-          "m60": 0
-        }
-      }
-    },
-    "26025634203": {
-      "FraudMarkers": {
-        "MuleAccounts": {
-          "d90": 0,
-          "m12": 1,
-          "m60": 0
-        }
-      }
-    },
-    "90913341266": {
+    "10567165418": {
       "FraudMarkers": {}
     },
-    "37452991000153": {
-      "FraudMarkers": {
-        "ApplicationFrauds": {
-          "d90": 0,
-          "m12": 1,
-          "m60": 0
-        }
-      }
-    },
-    "45314737957": {
+    "54497576116": {
       "FraudMarkers": {}
     },
-    "17810801350": {
+    "72837832618": {
       "FraudMarkers": {}
     },
-    "52427868094": {
+    "37409546123": {
       "FraudMarkers": {}
     },
-    "09839301047": {
+    "87664377250": {
       "FraudMarkers": {}
     },
-    "27204653000149": {
+    "58317100847": {
       "FraudMarkers": {}
     },
-    "39909169983": {
+    "16901913419": {
       "FraudMarkers": {}
     },
-    "15430391115": {
+    "09679290832": {
+      "FraudMarkers": {}
+    },
+    "61516406753": {
+      "FraudMarkers": {}
+    },
+    "86891712157": {
+      "FraudMarkers": {}
+    },
+    "87245461864": {
       "FraudMarkers": {
         "MuleAccounts": {
           "d90": 0,
@@ -59,73 +41,269 @@
         }
       }
     },
-    "43320037994": {
+    "61663049432": {
       "FraudMarkers": {}
     },
-    "08412411000104": {
-      "FraudMarkers": {}
-    },
-    "87401640040": {
+    "74039097203": {
       "FraudMarkers": {
-        "OtherFrauds": {
+        "MuleAccounts": {
           "d90": 0,
           "m12": 1,
           "m60": 0
         }
       }
     },
-    "11838425110": {
+    "53849531872": {
       "FraudMarkers": {}
     },
-    "74034471310": {
+    "82918289469": {
+      "FraudMarkers": {}
+    },
+    "29817062252": {
+      "FraudMarkers": {}
+    },
+    "71863854193": {
+      "FraudMarkers": {}
+    },
+    "70765474301": {
+      "FraudMarkers": {}
+    },
+    "07069182589": {
+      "FraudMarkers": {}
+    },
+    "69281687305": {
+      "FraudMarkers": {}
+    },
+    "38082940603": {
+      "FraudMarkers": {}
+    },
+    "15102163329": {
+      "FraudMarkers": {}
+    },
+    "75181699758": {
+      "FraudMarkers": {}
+    },
+    "19567376263": {
+      "FraudMarkers": {}
+    },
+    "72679496574": {
+      "FraudMarkers": {}
+    },
+    "55093109878": {
+      "FraudMarkers": {}
+    },
+    "63363953240": {
+      "FraudMarkers": {}
+    },
+    "31738607135": {
+      "FraudMarkers": {}
+    },
+    "82123789933": {
       "FraudMarkers": {
-        "OtherFrauds": {
+        "MuleAccounts": {
           "d90": 0,
           "m12": 1,
           "m60": 0
         }
       }
     },
-    "24190496677": {
+    "82423718497": {
+      "FraudMarkers": {}
+    },
+    "69109535926": {
+      "FraudMarkers": {}
+    },
+    "53145593234": {
+      "FraudMarkers": {}
+    },
+    "95333123276": {
+      "FraudMarkers": {}
+    },
+    "44609013827": {
+      "FraudMarkers": {}
+    },
+    "18367135415": {
+      "FraudMarkers": {}
+    },
+    "25773564394": {
+      "FraudMarkers": {}
+    },
+    "74681453854": {
+      "FraudMarkers": {}
+    },
+    "86799759231": {
+      "FraudMarkers": {}
+    },
+    "43790202827": {
+      "FraudMarkers": {}
+    },
+    "55944276940": {
+      "FraudMarkers": {}
+    },
+    "79837246243": {
+      "FraudMarkers": {}
+    },
+    "85570848894": {
+      "FraudMarkers": {}
+    },
+    "17360326826": {
+      "FraudMarkers": {}
+    },
+    "57994784798": {
+      "FraudMarkers": {}
+    },
+    "11393095526": {
+      "FraudMarkers": {}
+    },
+    "28884469368": {
+      "FraudMarkers": {}
+    },
+    "35528211123": {
+      "FraudMarkers": {}
+    },
+    "66381017651": {
+      "FraudMarkers": {}
+    },
+    "02934343367": {
+      "FraudMarkers": {}
+    },
+    "29488029200": {
+      "FraudMarkers": {}
+    },
+    "23670658610": {
+      "FraudMarkers": {}
+    },
+    "80389944343": {
+      "FraudMarkers": {}
+    },
+    "52909768767": {
+      "FraudMarkers": {}
+    },
+    "16993895439": {
+      "FraudMarkers": {}
+    },
+    "53396703928": {
+      "FraudMarkers": {}
+    },
+    "60139551824": {
+      "FraudMarkers": {}
+    },
+    "19854510506": {
+      "FraudMarkers": {}
+    },
+    "33222970203": {
+      "FraudMarkers": {}
+    },
+    "47610934470": {
+      "FraudMarkers": {}
+    },
+    "97960702195": {
+      "FraudMarkers": {}
+    },
+    "70546864465": {
+      "FraudMarkers": {}
+    },
+    "77819065001": {
+      "FraudMarkers": {}
+    },
+    "77668718230": {
+      "FraudMarkers": {}
+    },
+    "79137884883": {
+      "FraudMarkers": {}
+    },
+    "94846912426": {
       "FraudMarkers": {
         "UnknownFrauds": {
           "d90": 0,
           "m12": 1,
           "m60": 0
-        }
-      }
-    },
-    "05865185098": {
-      "FraudMarkers": {}
-    },
-    "02654235000122": {
-      "FraudMarkers": {}
-    },
-    "06088356170": {
-      "FraudMarkers": {
-        "OtherFrauds": {
+        },
+        "ScammerAccounts": {
           "d90": 0,
           "m12": 1,
           "m60": 0
         }
       }
     },
-    "41928327630": {
+    "94351676590": {
       "FraudMarkers": {}
     },
-    "47143455830": {
+    "82189704367": {
       "FraudMarkers": {}
     },
-    "01065133383": {
+    "54058107545": {
+      "FraudMarkers": {}
+    },
+    "86470316018": {
+      "FraudMarkers": {}
+    },
+    "30024589292": {
+      "FraudMarkers": {}
+    },
+    "38992352581": {
+      "FraudMarkers": {}
+    },
+    "97440930649": {
+      "FraudMarkers": {}
+    },
+    "12476066354": {
+      "FraudMarkers": {}
+    },
+    "59287572712": {
+      "FraudMarkers": {}
+    },
+    "32079244680": {
+      "FraudMarkers": {}
+    },
+    "41787029638": {
       "FraudMarkers": {
         "ApplicationFrauds": {
           "d90": 0,
           "m12": 1,
           "m60": 0
+        },
+        "ScammerAccounts": {
+          "d90": 0,
+          "m12": 1,
+          "m60": 0
         }
       }
     },
-    "75564641728": {
+    "28920346631": {
+      "FraudMarkers": {}
+    },
+    "29826991686": {
+      "FraudMarkers": {}
+    },
+    "31133614868": {
+      "FraudMarkers": {}
+    },
+    "51325393940": {
+      "FraudMarkers": {}
+    },
+    "90414633644": {
+      "FraudMarkers": {}
+    },
+    "41262585660": {
+      "FraudMarkers": {}
+    },
+    "80860387852": {
+      "FraudMarkers": {}
+    },
+    "26372538199": {
+      "FraudMarkers": {}
+    },
+    "81809608031": {
+      "FraudMarkers": {}
+    },
+    "53683155035": {
+      "FraudMarkers": {}
+    },
+    "46990236736": {
+      "FraudMarkers": {}
+    },
+    "27857903086": {
       "FraudMarkers": {
         "OtherFrauds": {
           "d90": 0,
@@ -134,51 +312,497 @@
         }
       }
     },
-    "71822782000192": {
+    "41459954300": {
+      "FraudMarkers": {}
+    },
+    "71305821548": {
+      "FraudMarkers": {}
+    },
+    "05341629671": {
+      "FraudMarkers": {}
+    },
+    "29422369495": {
+      "FraudMarkers": {}
+    },
+    "49170317968": {
+      "FraudMarkers": {}
+    },
+    "42884973613": {
+      "FraudMarkers": {}
+    },
+    "56392180532": {
+      "FraudMarkers": {}
+    },
+    "36232259750": {
+      "FraudMarkers": {}
+    },
+    "99276366016": {
+      "FraudMarkers": {}
+    },
+    "72789906700": {
+      "FraudMarkers": {}
+    },
+    "66156823204": {
+      "FraudMarkers": {}
+    },
+    "34150252335": {
+      "FraudMarkers": {}
+    },
+    "69614177608": {
+      "FraudMarkers": {}
+    },
+    "72055015630": {
+      "FraudMarkers": {}
+    },
+    "74366875900": {
+      "FraudMarkers": {}
+    },
+    "10033907579": {
+      "FraudMarkers": {}
+    },
+    "95003267525": {
+      "FraudMarkers": {}
+    },
+    "11450841848": {
+      "FraudMarkers": {}
+    },
+    "60284475793": {
+      "FraudMarkers": {}
+    },
+    "31735848050": {
+      "FraudMarkers": {}
+    },
+    "70392468484": {
+      "FraudMarkers": {}
+    },
+    "09771138502": {
+      "FraudMarkers": {}
+    },
+    "47151216700": {
+      "FraudMarkers": {}
+    },
+    "75423555116": {
+      "FraudMarkers": {}
+    },
+    "00368216837": {
+      "FraudMarkers": {}
+    },
+    "69236911170": {
+      "FraudMarkers": {}
+    },
+    "66232625390": {
       "FraudMarkers": {
+        "OtherFrauds": {
+          "d90": 0,
+          "m12": 1,
+          "m60": 0
+        }
+      }
+    },
+    "65614911650": {
+      "FraudMarkers": {}
+    },
+    "09398076535": {
+      "FraudMarkers": {
+        "OtherFrauds": {
+          "d90": 0,
+          "m12": 1,
+          "m60": 0
+        }
+      }
+    },
+    "91453230203": {
+      "FraudMarkers": {}
+    },
+    "41652580247": {
+      "FraudMarkers": {}
+    },
+    "03216248909": {
+      "FraudMarkers": {}
+    },
+    "69371565454": {
+      "FraudMarkers": {}
+    },
+    "49669549167": {
+      "FraudMarkers": {}
+    },
+    "61934514551": {
+      "FraudMarkers": {}
+    },
+    "12172676110": {
+      "FraudMarkers": {}
+    },
+    "57612341301": {
+      "FraudMarkers": {}
+    },
+    "29922174090": {
+      "FraudMarkers": {}
+    },
+    "89544999370": {
+      "FraudMarkers": {}
+    },
+    "84575441520": {
+      "FraudMarkers": {}
+    },
+    "56963956863": {
+      "FraudMarkers": {}
+    },
+    "00790413884": {
+      "FraudMarkers": {}
+    },
+    "17719884019": {
+      "FraudMarkers": {}
+    },
+    "15676856335": {
+      "FraudMarkers": {}
+    },
+    "02345888962": {
+      "FraudMarkers": {}
+    },
+    "91817315072": {
+      "FraudMarkers": {}
+    },
+    "54399052783": {
+      "FraudMarkers": {}
+    },
+    "56279484009": {
+      "FraudMarkers": {}
+    },
+    "27501421722": {
+      "FraudMarkers": {}
+    },
+    "75115811618": {
+      "FraudMarkers": {}
+    },
+    "14330146703": {
+      "FraudMarkers": {}
+    },
+    "72817218205": {
+      "FraudMarkers": {}
+    },
+    "43338300018": {
+      "FraudMarkers": {}
+    },
+    "66844074131": {
+      "FraudMarkers": {}
+    },
+    "12912223679": {
+      "FraudMarkers": {}
+    },
+    "14941350278": {
+      "FraudMarkers": {}
+    },
+    "36989080850": {
+      "FraudMarkers": {}
+    },
+    "17239109615": {
+      "FraudMarkers": {}
+    },
+    "25147436995": {
+      "FraudMarkers": {}
+    },
+    "05903445365": {
+      "FraudMarkers": {}
+    },
+    "54132338924": {
+      "FraudMarkers": {}
+    },
+    "77490905257": {
+      "FraudMarkers": {}
+    },
+    "07909669054": {
+      "FraudMarkers": {}
+    },
+    "23487626845": {
+      "FraudMarkers": {}
+    },
+    "70812521501": {
+      "FraudMarkers": {}
+    },
+    "33014546232": {
+      "FraudMarkers": {}
+    },
+    "49082486997": {
+      "FraudMarkers": {}
+    },
+    "06123100785": {
+      "FraudMarkers": {}
+    },
+    "18501349445": {
+      "FraudMarkers": {}
+    },
+    "67916011085": {
+      "FraudMarkers": {}
+    },
+    "90092356532": {
+      "FraudMarkers": {}
+    },
+    "64869458420": {
+      "FraudMarkers": {}
+    },
+    "63974777202": {
+      "FraudMarkers": {}
+    },
+    "38660554981": {
+      "FraudMarkers": {}
+    },
+    "60399576894": {
+      "FraudMarkers": {}
+    },
+    "04992464548": {
+      "FraudMarkers": {}
+    },
+    "76803601463": {
+      "FraudMarkers": {}
+    },
+    "87549537828": {
+      "FraudMarkers": {}
+    },
+    "91111465673": {
+      "FraudMarkers": {}
+    },
+    "14616682399": {
+      "FraudMarkers": {}
+    },
+    "07911302154": {
+      "FraudMarkers": {}
+    },
+    "78576555204": {
+      "FraudMarkers": {}
+    },
+    "45539717988": {
+      "FraudMarkers": {}
+    },
+    "88811489199": {
+      "FraudMarkers": {}
+    },
+    "21041025700": {
+      "FraudMarkers": {}
+    },
+    "56814336170": {
+      "FraudMarkers": {}
+    },
+    "18943860609": {
+      "FraudMarkers": {}
+    },
+    "01354632117": {
+      "FraudMarkers": {}
+    },
+    "84364697478": {
+      "FraudMarkers": {}
+    },
+    "78778932807": {
+      "FraudMarkers": {}
+    },
+    "28527288770": {
+      "FraudMarkers": {}
+    },
+    "51534161600": {
+      "FraudMarkers": {}
+    },
+    "97778188074": {
+      "FraudMarkers": {}
+    },
+    "62963842708": {
+      "FraudMarkers": {}
+    },
+    "41128357798": {
+      "FraudMarkers": {}
+    },
+    "60271322136": {
+      "FraudMarkers": {}
+    },
+    "91176766813": {
+      "FraudMarkers": {}
+    },
+    "17189062696": {
+      "FraudMarkers": {}
+    },
+    "51367430852": {
+      "FraudMarkers": {}
+    },
+    "14044826285": {
+      "FraudMarkers": {}
+    },
+    "76517345647": {
+      "FraudMarkers": {}
+    },
+    "17067349133": {
+      "FraudMarkers": {}
+    },
+    "80469370378": {
+      "FraudMarkers": {}
+    },
+    "45816508792": {
+      "FraudMarkers": {}
+    },
+    "40112989306": {
+      "FraudMarkers": {
+        "UnknownFrauds": {
+          "d90": 0,
+          "m12": 1,
+          "m60": 0
+        }
+      }
+    },
+    "02861962550": {
+      "FraudMarkers": {}
+    },
+    "74844003941": {
+      "FraudMarkers": {}
+    },
+    "10033076634": {
+      "FraudMarkers": {}
+    },
+    "86856315058": {
+      "FraudMarkers": {}
+    },
+    "43201718530": {
+      "FraudMarkers": {}
+    },
+    "67917569934": {
+      "FraudMarkers": {}
+    },
+    "84325122575": {
+      "FraudMarkers": {}
+    },
+    "22419027132": {
+      "FraudMarkers": {}
+    },
+    "36317308616": {
+      "FraudMarkers": {}
+    },
+    "98342342107": {
+      "FraudMarkers": {}
+    },
+    "41348165723": {
+      "FraudMarkers": {}
+    },
+    "45727334063": {
+      "FraudMarkers": {}
+    },
+    "55253929681": {
+      "FraudMarkers": {}
+    },
+    "88818425994": {
+      "FraudMarkers": {}
+    },
+    "59302690504": {
+      "FraudMarkers": {}
+    },
+    "92484835930": {
+      "FraudMarkers": {
+        "MuleAccounts": {
+          "d90": 0,
+          "m12": 1,
+          "m60": 0
+        },
         "ScammerAccounts": {
+          "d90": 0,
+          "m12": 1,
+          "m60": 0
+        }
+      }
+    },
+    "88293839023": {
+      "FraudMarkers": {}
+    },
+    "55738870506": {
+      "FraudMarkers": {}
+    },
+    "19321884440": {
+      "FraudMarkers": {}
+    },
+    "84347839910": {
+      "FraudMarkers": {
+        "OtherFrauds": {
           "d90": 0,
           "m12": 2,
           "m60": 0
         }
       }
     },
-    "48350305673": {
+    "91826876766": {
       "FraudMarkers": {}
     },
-    "27109477000166": {
-      "FraudMarkers": {
-        "ApplicationFrauds": {
-          "d90": 0,
-          "m12": 1,
-          "m60": 0
-        }
-      }
-    },
-    "10433218100": {
-      "FraudMarkers": {
-        "ApplicationFrauds": {
-          "d90": 0,
-          "m12": 1,
-          "m60": 0
-        }
-      }
-    },
-    "90967054000113": {
+    "82921963744": {
       "FraudMarkers": {}
     },
-    "72148951378": {
-      "FraudMarkers": {
-        "ScammerAccounts": {
-          "d90": 0,
-          "m12": 1,
-          "m60": 0
-        }
-      }
+    "04200323044": {
+      "FraudMarkers": {}
     },
-    "98069901616": {
+    "56785136997": {
+      "FraudMarkers": {}
+    },
+    "54902673053": {
+      "FraudMarkers": {}
+    },
+    "40658377582": {
+      "FraudMarkers": {}
+    },
+    "15471723988": {
+      "FraudMarkers": {}
+    },
+    "19848151486": {
+      "FraudMarkers": {}
+    },
+    "13374207863": {
+      "FraudMarkers": {}
+    },
+    "34505224422": {
+      "FraudMarkers": {}
+    },
+    "84444824719": {
+      "FraudMarkers": {}
+    },
+    "73866104596": {
+      "FraudMarkers": {}
+    },
+    "67569069501": {
+      "FraudMarkers": {}
+    },
+    "53557211762": {
+      "FraudMarkers": {}
+    },
+    "13291482077": {
+      "FraudMarkers": {}
+    },
+    "40521778603": {
+      "FraudMarkers": {}
+    },
+    "74054293867": {
+      "FraudMarkers": {}
+    },
+    "42384458132": {
+      "FraudMarkers": {}
+    },
+    "48131658260": {
+      "FraudMarkers": {}
+    },
+    "97297926230": {
+      "FraudMarkers": {}
+    },
+    "64776619180": {
+      "FraudMarkers": {}
+    },
+    "25930407509": {
+      "FraudMarkers": {}
+    },
+    "46596472850": {
+      "FraudMarkers": {}
+    },
+    "85738063708": {
+      "FraudMarkers": {}
+    },
+    "02660560919": {
+      "FraudMarkers": {}
+    },
+    "84030757316": {
+      "FraudMarkers": {}
+    },
+    "38937528622": {
       "FraudMarkers": {
-        "ApplicationFrauds": {
+        "MuleAccounts": {
           "d90": 0,
           "m12": 1,
           "m60": 0
@@ -190,24 +814,138 @@
         }
       }
     },
-    "87262473000145": {
+    "42207097030": {
       "FraudMarkers": {}
     },
-    "32812067942": {
+    "94564587331": {
       "FraudMarkers": {}
     },
-    "77434873000137": {
+    "00754009106": {
       "FraudMarkers": {}
     },
-    "69957773879": {
+    "26316627769": {
       "FraudMarkers": {}
     },
-    "16073375000111": {
+    "48874765827": {
       "FraudMarkers": {}
     },
-    "67749649000180": {
+    "44588868942": {
+      "FraudMarkers": {}
+    },
+    "49718264329": {
+      "FraudMarkers": {}
+    },
+    "11586379186": {
+      "FraudMarkers": {}
+    },
+    "51239255543": {
+      "FraudMarkers": {}
+    },
+    "43118773154": {
+      "FraudMarkers": {}
+    },
+    "15830251973": {
+      "FraudMarkers": {}
+    },
+    "79217421812": {
+      "FraudMarkers": {}
+    },
+    "71452117853": {
+      "FraudMarkers": {}
+    },
+    "06174806642": {
+      "FraudMarkers": {}
+    },
+    "92046059875": {
+      "FraudMarkers": {}
+    },
+    "75104904997": {
+      "FraudMarkers": {}
+    },
+    "38298164482": {
+      "FraudMarkers": {}
+    },
+    "39804535459": {
+      "FraudMarkers": {}
+    },
+    "65710480274": {
+      "FraudMarkers": {}
+    },
+    "68928383838": {
+      "FraudMarkers": {}
+    },
+    "15275892934": {
+      "FraudMarkers": {}
+    },
+    "27970567525": {
+      "FraudMarkers": {}
+    },
+    "18441205469": {
+      "FraudMarkers": {
+        "ScammerAccounts": {
+          "d90": 0,
+          "m12": 1,
+          "m60": 0
+        }
+      }
+    },
+    "30279227850": {
+      "FraudMarkers": {}
+    },
+    "46620210309": {
+      "FraudMarkers": {}
+    },
+    "95305256992": {
+      "FraudMarkers": {}
+    },
+    "69262524838": {
+      "FraudMarkers": {}
+    },
+    "21045395285": {
+      "FraudMarkers": {}
+    },
+    "36532827304": {
+      "FraudMarkers": {}
+    },
+    "52946645185": {
+      "FraudMarkers": {}
+    },
+    "70315084367": {
+      "FraudMarkers": {}
+    },
+    "74014391400": {
+      "FraudMarkers": {}
+    },
+    "40191614610": {
       "FraudMarkers": {
         "UnknownFrauds": {
+          "d90": 0,
+          "m12": 1,
+          "m60": 0
+        }
+      }
+    },
+    "71781800995": {
+      "FraudMarkers": {}
+    },
+    "31237965586": {
+      "FraudMarkers": {}
+    },
+    "50255171684": {
+      "FraudMarkers": {}
+    },
+    "85886605045": {
+      "FraudMarkers": {}
+    },
+    "83846315818": {
+      "FraudMarkers": {}
+    },
+    "30689857578": {
+      "FraudMarkers": {}
+    },
+    "98972321338": {
+      "FraudMarkers": {
+        "ScammerAccounts": {
           "d90": 0,
           "m12": 1,
           "m60": 0
@@ -219,19 +957,13 @@
         }
       }
     },
-    "82814893246": {
+    "50950271519": {
       "FraudMarkers": {}
     },
-    "31586923250": {
-      "FraudMarkers": {
-        "MuleAccounts": {
-          "d90": 0,
-          "m12": 1,
-          "m60": 0
-        }
-      }
+    "76481766451": {
+      "FraudMarkers": {}
     },
-    "66889373448": {
+    "94754100581": {
       "FraudMarkers": {
         "ApplicationFrauds": {
           "d90": 0,
@@ -240,115 +972,55 @@
         }
       }
     },
-    "83136783727": {
+    "33248022027": {
       "FraudMarkers": {}
     },
-    "45868501403": {
+    "19140191303": {
       "FraudMarkers": {}
     },
-    "26204505351": {
+    "26321547158": {
       "FraudMarkers": {}
     },
-    "64823662954": {
-      "FraudMarkers": {
-        "UnknownFrauds": {
-          "d90": 0,
-          "m12": 1,
-          "m60": 0
-        }
-      }
-    },
-    "28498776970": {
-      "FraudMarkers": {
-        "UnknownFrauds": {
-          "d90": 0,
-          "m12": 1,
-          "m60": 0
-        }
-      }
-    },
-    "08386379499": {
+    "78288457665": {
       "FraudMarkers": {}
     },
-    "93103413190": {
-      "FraudMarkers": {
-        "ApplicationFrauds": {
-          "d90": 0,
-          "m12": 1,
-          "m60": 0
-        },
-        "UnknownFrauds": {
-          "d90": 0,
-          "m12": 1,
-          "m60": 0
-        }
-      }
-    },
-    "54549480000173": {
+    "95482659151": {
       "FraudMarkers": {}
     },
-    "08053100376": {
+    "24393328361": {
       "FraudMarkers": {}
     },
-    "96507527300": {
+    "41417376317": {
       "FraudMarkers": {}
     },
-    "95788568579": {
+    "93764625210": {
       "FraudMarkers": {}
     },
-    "34309805000133": {
+    "03221549873": {
       "FraudMarkers": {}
     },
-    "82449353402": {
-      "FraudMarkers": {
-        "ScammerAccounts": {
-          "d90": 0,
-          "m12": 1,
-          "m60": 0
-        }
-      }
-    },
-    "31051834000150": {
+    "11029471649": {
       "FraudMarkers": {}
     },
-    "57444313000156": {
-      "FraudMarkers": {
-        "MuleAccounts": {
-          "d90": 0,
-          "m12": 1,
-          "m60": 0
-        }
-      }
-    },
-    "17693676000100": {
+    "35570283803": {
       "FraudMarkers": {}
     },
-    "01226916600": {
+    "21847612571": {
       "FraudMarkers": {}
     },
-    "31931491950": {
+    "03269910266": {
       "FraudMarkers": {}
     },
-    "11280598000136": {
-      "FraudMarkers": {
-        "OtherFrauds": {
-          "d90": 0,
-          "m12": 1,
-          "m60": 0
-        },
-        "ScammerAccounts": {
-          "d90": 0,
-          "m12": 1,
-          "m60": 0
-        },
-        "ApplicationFrauds": {
-          "d90": 0,
-          "m12": 1,
-          "m60": 0
-        }
-      }
+    "61780850107": {
+      "FraudMarkers": {}
     },
-    "69653287117": {
+    "52600680683": {
+      "FraudMarkers": {}
+    },
+    "82439500283": {
+      "FraudMarkers": {}
+    },
+    "79383470194": {
       "FraudMarkers": {}
     }
   }

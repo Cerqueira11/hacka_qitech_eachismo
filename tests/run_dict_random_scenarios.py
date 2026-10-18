@@ -1,4 +1,5 @@
 import argparse
+from bisect import bisect_right
 from datetime import datetime, timedelta, timezone
 import json
 import logging
@@ -8,8 +9,10 @@ import random
 import uuid
 
 from dotenv import load_dotenv
+from tests.utils.device_api_mock import device_path
 from tests.utils.dict_response_simulator import DictResponseSimulator
 from tests.utils.excel_report import create_results_workbook, run_workbook_path
+from tests.utils.mock_utils import BaseExpectation, Mock
 from tests.utils.request_generator import RequestGenerator
 
 
@@ -26,6 +29,9 @@ COUNTER_BY_FRAUD_TYPE = {
     "OTHER": "OtherFrauds",
     "UNKNOWN": "UnknownFrauds",
 }
+# Fração dos Pix feitos de um dispositivo cadastrado do titular da origem.
+# O resto sai de um dispositivo do pool comum, que não é cadastrado na API (404).
+REGISTERED_DEVICE_RATE = 0.85
 
 
 def build_application_dict_mock(report: dict) -> dict:
@@ -95,13 +101,27 @@ def random_location(rng: random.Random):
     return {"latitude": round(latitude, 6), "longitude": round(longitude, 6)}
 
 
+def build_registered_devices(device_rng: random.Random, documents: list) -> dict:
+    """Dispositivos cadastrados por titular: 1, às vezes 2 (celular + tablet)."""
+    registered = {}
+    for document in documents:
+        quantity = 2 if device_rng.random() < 0.25 else 1
+        registered[document] = [
+            f"dvc-reg-{device_rng.getrandbits(48):012x}" for _ in range(quantity)
+        ]
+    return registered
+
+
 def build_random_scenarios(
     simulator: DictResponseSimulator,
     rng: random.Random,
     run_id: str,
     count: int,
     documents: list,
-) -> list:
+    device_rng: random.Random = None,
+) -> tuple:
+    """Devolve (cenários, dispositivos cadastrados por documento)."""
+    device_rng = device_rng or random.Random()
     if count < 1:
         raise ValueError("A quantidade de cenários deve ser maior que zero")
     dict_queries = {
@@ -111,28 +131,42 @@ def build_random_scenarios(
     start = datetime(2026, 7, 19, tzinfo=timezone(timedelta(hours=-3)))
     end = datetime(2026, 10, 17, 23, 59, tzinfo=timezone(timedelta(hours=-3)))
 
+    # Uma conta por CPF do pool (todos os CPFs entram no teste). Se o pool for
+    # pequeno, completa com contas extras de CPFs sorteados, como antes.
+    account_owners = list(documents)
+    minimum_accounts = max(25, min(count, 100))
+    while len(account_owners) < minimum_accounts:
+        account_owners.append(rng.choice(documents))
+
     accounts = []
-    for index in range(max(25, min(count, 100))):
+    used_account_numbers = set()
+    for document_number in account_owners:
+        account_number = str(rng.randrange(1_000_000, 99_999_999))
+        while account_number in used_account_numbers:
+            account_number = str(rng.randrange(1_000_000, 99_999_999))
+        used_account_numbers.add(account_number)
         accounts.append({
-            "account_number": str(rng.randrange(1_000_000, 99_999_999)),
-            "document_number": rng.choice(documents),
+            "account_number": account_number,
+            "document_number": document_number,
             "opening_date": random_timestamp(
                 rng,
                 start - timedelta(days=365),
                 start - timedelta(days=1),
             ),
         })
+    accounts.sort(key=lambda account: account["opening_date"])
+    opening_dates = [account["opening_date"] for account in accounts]
 
+    # Pool comum: dispositivos que NÃO são cadastrados na API (404).
     devices = [f"dvc-{rng.getrandbits(48):012x}" for _ in range(max(10, count // 5))]
+    registered_devices = build_registered_devices(device_rng, documents)
     transaction_times = sorted(random_timestamp(rng, start, end) for _ in range(count))
     institution_ispb = os.environ.get("INSTITUTION_ISPB", "00000000")
     scenarios = []
 
     for index, transaction_time in enumerate(transaction_times):
-        active_accounts = [
-            account for account in accounts
-            if account["opening_date"] <= transaction_time
-        ]
+        # accounts está ordenado por abertura: as ativas são um prefixo.
+        active_accounts = accounts[:bisect_right(opening_dates, transaction_time)]
         if len(active_accounts) < 2:
             active_accounts = accounts
         source = rng.choice(active_accounts)
@@ -154,14 +188,24 @@ def build_random_scenarios(
             "owner": {"document_number": destination["document_number"]},
         }
 
+        # O device_rng (separado) decide se o Pix sai de um dispositivo
+        # cadastrado do titular; senão usa o do pool comum (404 na API).
+        amount = random_amount(rng)
+        unregistered_device = rng.choice(devices)
+        device_registered = device_rng.random() < REGISTERED_DEVICE_RATE
+        device_id = (
+            device_rng.choice(registered_devices[source["document_number"]])
+            if device_registered else unregistered_device
+        )
+
         payload = {
             "id": f"random-{run_id}-{index + 1:04d}",
-            "amount": random_amount(rng),
+            "amount": amount,
             "transaction_date": transaction_time.isoformat(timespec="seconds"),
             "source_account": source_account,
             "destination_account": destination_account,
             "source": {
-                "device_id": rng.choice(devices),
+                "device_id": device_id,
                 "channel": rng.choice(("app", "internet_banking", "mobile")),
                 "ip": f"198.51.100.{rng.randint(1, 254)}",
             },
@@ -173,12 +217,13 @@ def build_random_scenarios(
         scenarios.append({
             "fixture": f"aleatorio_{index + 1:04d}",
             "post_payload": payload,
+            "device_registered_expected": device_registered,
             "dict_queries": {
                 "source_account": dict_queries[source["document_number"]],
                 "destination_account": dict_queries[destination["document_number"]],
             },
         })
-    return scenarios
+    return scenarios, registered_devices
 
 
 def run_scenarios(seed=None, count=DEFAULT_SCENARIO_COUNT, cpf_count=DEFAULT_CPF_COUNT) -> dict:
@@ -186,7 +231,11 @@ def run_scenarios(seed=None, count=DEFAULT_SCENARIO_COUNT, cpf_count=DEFAULT_CPF
     simulator = DictResponseSimulator(rng=rng)
     run_id = uuid.uuid4().hex[:8]
     cpf_pool = generate_cpf_pool(rng, cpf_count)
-    scenarios = build_random_scenarios(simulator, rng, run_id, count, cpf_pool)
+    # RNG separado para os dispositivos, derivado da mesma seed.
+    device_rng = random.Random(None if seed is None else f"{seed}-devices")
+    scenarios, registered_devices = build_random_scenarios(
+        simulator, rng, run_id, count, cpf_pool, device_rng=device_rng
+    )
 
     return {
         "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
@@ -195,13 +244,40 @@ def run_scenarios(seed=None, count=DEFAULT_SCENARIO_COUNT, cpf_count=DEFAULT_CPF
         "cpf_count": cpf_count,
         "cpf_pool": cpf_pool,
         "scenario_count": len(scenarios),
+        "registered_devices": registered_devices,
         "scenarios": scenarios,
     }
 
 
+def register_devices_on_mock(registered_devices: dict) -> int:
+    """Cadastra no mockserver (API de dispositivo) os dispositivos de cada titular.
+
+    Limpa as expectativas antes: o que não for cadastrado aqui responde 404,
+    que a R1 lê como "dispositivo não cadastrado".
+    """
+    mock = Mock()
+    mock.clear()
+    expectations = [
+        BaseExpectation.generate_expectation(
+            "GET",
+            device_path(document, device_id),
+            {"document_number": document, "device_id": device_id, "registered": True},
+            200,
+        )
+        for document, device_ids in registered_devices.items()
+        for device_id in device_ids
+    ]
+    # O mockserver aceita uma lista de expectativas num PUT só.
+    mock.add_expectations(expectations)
+    return len(expectations)
+
+
 def submit_scenarios(report: dict) -> list:
     errors = []
-    for scenario in report["scenarios"]:
+    total = len(report["scenarios"])
+    for position, scenario in enumerate(report["scenarios"], start=1):
+        if position % 1000 == 0 or position == total:
+            print(f"POSTs enviados: {position}/{total}", flush=True)
         try:
             status, response = RequestGenerator.POST_pix_transaction(scenario["post_payload"])
             scenario["post_result"] = {"http_status": status, "response": response}
@@ -263,6 +339,15 @@ def main() -> None:
     arguments.dict_mock_output.parent.mkdir(parents=True, exist_ok=True)
     with arguments.dict_mock_output.open("w", encoding="utf-8") as fixture:
         json.dump(build_application_dict_mock(report), fixture, indent=2, ensure_ascii=False)
+
+    try:
+        registered_count = register_devices_on_mock(report["registered_devices"])
+    except Exception as error:
+        raise RuntimeError(
+            f"Não foi possível cadastrar os dispositivos no mockserver ({error}). "
+            "Suba com `docker compose up -d mockserver`."
+        ) from error
+    print(f"Dispositivos cadastrados no mockserver: {registered_count}", flush=True)
 
     post_errors = submit_scenarios(report)
     arguments.output.parent.mkdir(parents=True, exist_ok=True)
