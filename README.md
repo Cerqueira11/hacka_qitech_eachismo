@@ -7,7 +7,7 @@
 
 ## 1. Como o motor de decisão funciona
 
-O **EACHISMO** é um motor antifraude transacional projetado para o ecossistema Pix da QI Tech. Ele resolve o trilema do Pix: **decisão em tempo real (< 500 ms)**, **visão de rede e histórico relacional** e **fricção cirúrgica com falso-positivo mínimo**.
+Estamos projetando um motor antifraude transacional as a Service projetado para uma instituição financeira que tem como principais clientes pessoas físicas mas que também atende a PJ's (em sua maioria pequenos empresários e empreendedores individuais) . Ele envolve: **decisão em tempo real (< 500 ms)**, **visão de rede e histórico relacional** e **fricção cirúrgica com falso-positivo mínimo**.
 
 O caminho de cada `POST /pix/transaction` segue um pipeline determinístico e auditável em **7 etapas**:
 
@@ -125,9 +125,4 @@ uvicorn app:app --host 0.0.0.0 --port 8000 --app-dir src
 pytest tests/integration/ -v
 ```
 
-### Simulação de Estresse com 50.000 Transações Sintéticas
-Para validar a resiliência, latência e calibração estatística do motor sob carga massiva de produção:
-```powershell
-python -m tests.run_dict_random_scenarios --count 50000 --seed 42
-```
-Este comando gera transações variando CPFs/CNPJs, contas, horários ao longo de 90 dias, dispersão geográfica e personas do DICT, exportando os resultados consolidados e métricas em planilhas Excel em `tests/logs/`.
+
