@@ -100,10 +100,7 @@ def seed(
     base_url = base_url.rstrip("/")
     headers = {"INTERNAL-TOKEN": token}
 
-    LOGGER.info("Checando disponibilidade da API em %s/health_check", base_url)
-    health = requests.get(f"{base_url}/health_check", timeout=timeout)
-    health.raise_for_status()
-    LOGGER.info("API disponivel: HTTP %s", health.status_code)
+    requests.get(f"{base_url}/health_check", timeout=timeout).raise_for_status()
 
     with requests.Session() as session:
         session.headers.update(headers)
