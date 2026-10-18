@@ -87,9 +87,8 @@ A decisão final é obtida através de uma hierarquia rígida de avaliação:
 4. **Fluidez Total:**
    * Caso contrário $\rightarrow$ **`approved`**.
 
-### O Ciclo Completo de 2FA e Fraude Confirmada (D2 e D3)
-* **`POST /pix/transaction/{id}/2fa`**: Registra o retorno do cliente (`approved` ou `rejected`). Pix pendentes contam no limite temporariamente com TTL de 15 minutos; se aprovados, consolidam a movimentação e aprendizado no grafo.
-* **`POST /pix/transaction/{id}/fraud`**: Notificação de fraude confirmada (MED/contestação). Grava o status `rejected`, eleva a aresta transacional para peso $1.0$ e marca a conta receptora com `external_risk = 1.0`, permitindo que o grafo aprenda com fraudes reais rotuladas.
+### Pix com 2FA pendente
+Um Pix `two_factor_required` conta nos históricos e somas da origem (limite diário da R1, noite da R2, R9 e grafo) por 15 minutos: assim, quem dispara vários Pix enquanto o 2FA não volta não escapa do limite. Depois disso ele expira e é tratado como rejeitado (o dinheiro não saiu). O resultado do 2FA em si é tratado por quem executa o Pix e não volta para o motor (ver [Próximos passos](#7-próximos-passos)).
 
 ---
 
@@ -111,9 +110,7 @@ Todas as rotas exigem o header `INTERNAL-TOKEN` (padrão local: `default_token`)
 | `GET` | `/` | Nome do serviço e PID. | 200 |
 | `GET` | `/health_check` | Liveness (usado pelo healthcheck do Docker). | 204 |
 | `POST` | `/pix/transaction` | Analisa um Pix e devolve o veredito. | 201 analisado agora · 200 reenvio idempotente · 400 schema · 403 token · 409 mesmo `id` com outro conteúdo · 422 validação semântica |
-| `GET` | `/pix/transaction/{id}` | Veredito mais recente do Pix pelo `id` do payload. | 200 · 404 |
-| `POST` | `/pix/transaction/{id}/2fa` | Resultado do 2FA: `{"status": "approved" \| "rejected"}`. | 200 · 404 |
-| `POST` | `/pix/transaction/{id}/fraud` | Fraude confirmada (MED/contestação). | 200 · 404 |
+| `GET` | `/pix/transaction/{id}` | Devolve a análise gravada do Pix pelo `id` do payload (mesmo `key`, `status` e `metadata` do POST). | 200 · 404 |
 | `POST` | `/person_link` | Vínculo CPF <-> CNPJ usado pela R4: `{"cpf", "cnpj", "relation": "PARTNER" \| "SOLE_PROPRIETOR" \| "ADMINISTRATOR"}`. | 201 criado · 200 já existia |
 
 Não existe rota de cadastro de dispositivo: `registered_device` é cache interno, gravado só quando a Device API externa confirma o aparelho (R1).
@@ -209,3 +206,12 @@ Os testes são black box: falam com a API de pé por HTTP (e cadastram respostas
 Sem `.env`, os testes falam com a API em `0.0.0.0:3000` e com o MockServer em `0.0.0.0:1080`. Se você mudou alguma porta no `.env`, os testes leem `API_PORT` e `MOCK_PORT` de lá.
 
 
+---
+
+## 7. Próximos passos
+
+Ficaram fora do escopo do desafio (que pede só o `POST` e o `GET` do endpoint), mas o modelo de dados já comporta os dois: `status_result_history` guarda uma linha por status e o grafo já sabe atualizar o risco dos nós.
+
+* **Resultado do 2FA volta para o motor:** o cliente confirmou ou negou, e isso vira um novo status no histórico. Só seria aceito para Pix que estão em `two_factor_required`; um Pix rejeitado nunca pode ser aprovado por esse caminho.
+* **Fraude confirmada (MED / contestação) como rótulo:** a aresta do Pix passa a pesar 1.0 e a conta de destino recebe `external_risk = 1.0`. O grafo passa a aprender com fraudes reais, e não só com o que as regras viram, e quem estiver a até 3 saltos dessa conta herda o risco.
+* **Calibração dos parâmetros:** os limiares e pesos em `src/antifraud/config.py` são ponto de partida. Com fraudes rotuladas, dá para ajustá-los olhando taxa de falso-positivo por regra.

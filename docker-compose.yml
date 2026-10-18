@@ -75,30 +75,6 @@ services:
       mockserver:
         condition: service_started
 
-  # O agendador dos 8 jobs (decisao 4.2). Fica DESLIGADO no `docker compose up`
-  # de sempre, de proposito: os testes de job contam o que cada execucao
-  # processou, e um agendador rodando no mesmo banco disputaria esses itens.
-  # Para ligar junto com a API:
-  #
-  #     docker compose --profile scheduler up
-  scheduler:
-    profiles: ["scheduler"]
-    build:
-      context: .
-      target: api
-    environment:
-      DATABASE_URL: postgresql+psycopg2://bootcamp:bootcamp@db:5432/bootcamp
-      APP_ENV: ${APP_ENV:-local}
-      SERVICE_NAME: bootcamp-scheduler
-      INTERNAL_TOKEN: ${INTERNAL_TOKEN:-default_token}
-      INSTITUTION_ISPB: ${INSTITUTION_ISPB:-00000000}
-    volumes:
-      - ./src:/app
-    command: python scheduler.py
-    depends_on:
-      db:
-        condition: service_healthy
-
   # Mock dos servicos de fora: API de dispositivo (R1) e DICT (R4). Os
   # testes cadastram as respostas em PUT /mockserver/expectation
   # (tests/utils/device_api_mock.py e tests/utils/dict_api_mock.py).

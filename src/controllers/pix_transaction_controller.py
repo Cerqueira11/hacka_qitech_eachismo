@@ -154,101 +154,13 @@ class PixTransactionController(BaseController):
         return result_dto, True
 
     def get_by_id(self, transaction_id: str) -> dict:
-        """Devolve o veredito mais recente de um Pix pelo "id" enviado no POST."""
+        """Devolve o veredito gravado de um Pix pelo "id" enviado no POST."""
         tx = self.transaction_repository.get_by_transaction_id(transaction_id)
 
         if tx is None:
             raise NotFoundPixTransaction(transaction_id)
 
         return PixTransactionDTO.obj_to_dict(tx)
-
-    def submit_2fa(self, transaction_id: str, payload: dict) -> dict:
-        """Grava o resultado do 2FA (approved | rejected) para uma transação (D2)."""
-        tx = self.transaction_repository.get_by_transaction_id(transaction_id)
-        if tx is None:
-            raise NotFoundPixTransaction(transaction_id)
-
-        latest = tx.status_history[0]
-        status = payload["status"]
-
-        if latest.status == status:
-            return PixTransactionDTO.obj_to_dict(tx)
-
-        self.status_result_history_repository.create(
-            transaction=tx,
-            status=status,
-            metadata=latest.metadata_item,
-        )
-
-        if status == "approved":
-            # Incrementa o grau entre nós se for uma nova conexão
-            has_prev = self.context_builder.risk.has_edge(
-                tx.source_account_id, tx.destination_account_id, either_direction=True
-            )
-            degree_increment = 0 if has_prev else 1
-            if degree_increment > 0:
-                self.graph_scorer.graph.update_node_risk(
-                    tx.destination_account_id,
-                    evidence=float(tx.risk_score or 0),
-                    alpha=antifraud_config.DESTINATION_LEARNING_RATE,
-                    as_of=tx.transaction_date,
-                    tau_days=antifraud_config.GRAPH_TIME_DECAY_DAYS,
-                    external_risk=None,
-                    degree_increment=degree_increment,
-                )
-                self.graph_scorer.graph.update_node_risk(
-                    tx.source_account_id,
-                    evidence=float(tx.risk_score or 0),
-                    alpha=antifraud_config.SOURCE_LEARNING_RATE,
-                    as_of=tx.transaction_date,
-                    tau_days=antifraud_config.GRAPH_TIME_DECAY_DAYS,
-                    external_risk=None,
-                    degree_increment=degree_increment,
-                )
-
-        self.session.commit()
-        self.logger.info(f"2FA para transação {transaction_id} concluído com status: {status}")
-        return PixTransactionDTO.obj_to_dict(tx)
-
-    def report_fraud(self, transaction_id: str) -> dict:
-        """Marcação de fraude confirmada (MED / contestação - D3).
-
-        A aresta da transação vai a 1.0 e o destino recebe external_risk = 1.0.
-        O status mais recente passa a ser rejected.
-        """
-        tx = self.transaction_repository.get_by_transaction_id(transaction_id)
-        if tx is None:
-            raise NotFoundPixTransaction(transaction_id)
-
-        # Aresta vai a 1.0 (peso de fraude confirmada)
-        tx.risk_score = 1.0
-
-        latest = tx.status_history[0]
-        self.status_result_history_repository.create(
-            transaction=tx,
-            status="rejected",
-            metadata=latest.metadata_item,
-        )
-
-        # Nó destino recebe external_risk = 1.0
-        self.graph_scorer.graph.update_node_risk(
-            tx.destination_account_id,
-            evidence=1.0,
-            alpha=1.0,
-            as_of=tx.transaction_date,
-            tau_days=antifraud_config.GRAPH_TIME_DECAY_DAYS,
-            external_risk=1.0,
-            degree_increment=0,
-        )
-
-        self.session.commit()
-        self.logger.info(f"Fraude confirmada para Pix {transaction_id}. Conta destino marcada com risco 1.0.")
-        return {
-            "transaction_id": transaction_id,
-            "status": "fraud_confirmed",
-            "destination_account_id": str(tx.destination_account_id),
-            "risk_score": 1.0,
-        }
 
     @staticmethod
     def _replay(existing: TransactionHistory, payload_sha256: str) -> dict:

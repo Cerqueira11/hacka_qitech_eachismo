@@ -8,7 +8,7 @@ from datetime import timedelta, timezone
 
 ENGINE_VERSION = "2.0.0"
 
-# Brasil sem horário de verão desde 2019: UTC-3 fixo (o mesmo do scheduler).
+# Brasil sem horário de verão desde 2019: UTC-3 fixo.
 BRASILIA = timezone(timedelta(hours=-3))
 NIGHT_START_HOUR = 20  # 20h00 ...
 NIGHT_END_HOUR = 6     # ... até 05h59
@@ -109,7 +109,8 @@ R9_FANOUT_MAX = 3              # destinos distintos que a conta pagou
 R9_PASSTHROUGH_RATIO = 0.80    # (total que saiu) / (total que entrou) >= isto
 R9_WEIGHT = 0.40
 
-# D2 — TTL para 2FA pendente
+# 2FA pendente: conta nos históricos e somas por 15 minutos e depois expira,
+# como um rejeitado. O resultado do 2FA não volta para o motor (fora do escopo).
 TWO_FACTOR_TTL_MINUTES = 15
 
 # Sinais extras
