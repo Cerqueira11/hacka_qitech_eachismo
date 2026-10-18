@@ -1,0 +1,31 @@
+{
+  "id": "simulacao-dict-marcacao-registrada-cpf",
+  "amount": 80000,
+  "transaction_date": "2026-10-17T14:05:00-03:00",
+  "source_account": {
+    "branch": "0001",
+    "account_number": "7100452",
+    "opening_date": "2025-03-02T10:00:00-03:00",
+    "owner": {
+      "document_number": "11144477735"
+    }
+  },
+  "destination_account": {
+    "participant": "60701190",
+    "branch": "0001",
+    "account_number": "4500783",
+    "opening_date": "2024-01-15T09:00:00-03:00",
+    "owner": {
+      "document_number": "11144477735"
+    }
+  },
+  "source": {
+    "device_id": "dvc-dict-simulacao-02",
+    "channel": "app",
+    "ip": "198.51.100.24",
+    "geolocation": {
+      "latitude": -23.57,
+      "longitude": -46.64
+    }
+  }
+}

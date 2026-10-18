@@ -1,0 +1,27 @@
+{
+  "id": "simulacao-dict-marcacao-cnpj",
+  "amount": 25000,
+  "transaction_date": "2026-10-17T14:10:00-03:00",
+  "source_account": {
+    "branch": "0001",
+    "account_number": "7100453",
+    "opening_date": "2025-03-02T10:00:00-03:00",
+    "owner": {
+      "document_number": "12345678909"
+    }
+  },
+  "destination_account": {
+    "participant": "60701190",
+    "branch": "0001",
+    "account_number": "4500784",
+    "opening_date": "2024-01-15T09:00:00-03:00",
+    "owner": {
+      "document_number": "11222333000181"
+    }
+  },
+  "source": {
+    "device_id": "dvc-dict-simulacao-03",
+    "channel": "internet_banking",
+    "ip": "198.51.100.25"
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "id": "simulacao-dict-aleatoria-03",
+  "amount": 65000,
+  "transaction_date": "2026-10-17T14:30:00-03:00",
+  "source_account": {
+    "branch": "0001",
+    "account_number": "7200103",
+    "opening_date": "2025-04-12T09:00:00-03:00",
+    "owner": {
+      "document_number": "18244800000113"
+    }
+  },
+  "destination_account": {
+    "participant": "60701190",
+    "branch": "0001",
+    "account_number": "4600103",
+    "opening_date": "2024-04-01T09:00:00-03:00",
+    "owner": {
+      "document_number": "50600607054"
+    }
+  },
+  "source": {
+    "device_id": "dvc-dict-aleatoria-03",
+    "channel": "app",
+    "ip": "198.51.100.33",
+    "geolocation": {
+      "latitude": -23.58,
+      "longitude": -46.62
+    }
+  }
+}

@@ -1,0 +1,327 @@
+{
+  "generated_at": "2026-10-18T02:37:43+00:00",
+  "seed": 42,
+  "scenario_count": 3,
+  "scenarios": [
+    {
+      "fixture": "aleatoria_documentos_01.json",
+      "post_payload": {
+        "id": "simulacao-dict-aleatoria-01",
+        "amount": 18000,
+        "transaction_date": "2026-10-17T14:20:00-03:00",
+        "source_account": {
+          "branch": "0001",
+          "account_number": "7200101",
+          "opening_date": "2025-04-12T09:00:00-03:00",
+          "owner": {
+            "document_number": "50600607054"
+          }
+        },
+        "destination_account": {
+          "participant": "60701190",
+          "branch": "0001",
+          "account_number": "4600101",
+          "opening_date": "2024-02-15T09:00:00-03:00",
+          "owner": {
+            "document_number": "30030097967"
+          }
+        },
+        "source": {
+          "device_id": "dvc-dict-aleatoria-01",
+          "channel": "app",
+          "ip": "198.51.100.31",
+          "geolocation": {
+            "latitude": -23.55,
+            "longitude": -46.63
+          }
+        }
+      },
+      "dict_queries": {
+        "source_account": {
+          "document_number": "50600607054",
+          "response": {
+            "ListFraudMarkersResponse": {
+              "Signature": "",
+              "ResponseTime": "2026-10-18T02:37:43.578Z",
+              "CorrelationId": "e6cefc181489491a99c11c0af36b230e",
+              "HasMoreElements": true,
+              "Total": 5,
+              "FraudMarkers": {
+                "FraudMarker": [
+                  {
+                    "Id": "45a5959a-39f0-4eee-9689-353ea64f7a8d",
+                    "Status": "REGISTERED",
+                    "TaxIdNumber": "50600607054",
+                    "FraudType": "SCAMMER_ACCOUNT",
+                    "Key": "d94df49da578@example.test",
+                    "CreationTime": "2026-10-18T02:37:43.578Z",
+                    "LastModified": "2026-10-18T02:37:43.578Z",
+                    "InfractionReport": {
+                      "Id": "b241b857-ad2c-49db-8e28-2180e8a3b4eb"
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "destination_account": {
+          "document_number": "30030097967",
+          "response": {
+            "ListFraudMarkersResponse": {
+              "Signature": "",
+              "ResponseTime": "2026-10-18T02:37:43.578Z",
+              "CorrelationId": "e7c282d0e0b54cc6a6c91af12dfae2ee",
+              "HasMoreElements": false,
+              "Total": 1,
+              "FraudMarkers": {
+                "FraudMarker": [
+                  {
+                    "Id": "722518f1-f96c-4b12-8143-dad0fc435399",
+                    "Status": "REGISTERED",
+                    "TaxIdNumber": "30030097967",
+                    "FraudType": "APPLICATION_FRAUD",
+                    "Key": "c759b248dd71@example.test",
+                    "CreationTime": "2026-10-18T02:37:43.578Z",
+                    "LastModified": "2026-10-18T02:37:43.578Z",
+                    "InfractionReport": {
+                      "Id": "d53480c3-59ea-4f8b-8cfb-70d48aef3c10"
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "fixture": "aleatoria_documentos_02.json",
+      "post_payload": {
+        "id": "simulacao-dict-aleatoria-02",
+        "amount": 42000,
+        "transaction_date": "2026-10-17T14:25:00-03:00",
+        "source_account": {
+          "branch": "0001",
+          "account_number": "7200102",
+          "opening_date": "2025-04-12T09:00:00-03:00",
+          "owner": {
+            "document_number": "58544528635"
+          }
+        },
+        "destination_account": {
+          "participant": "60701190",
+          "branch": "0001",
+          "account_number": "4600102",
+          "opening_date": "2024-03-20T09:00:00-03:00",
+          "owner": {
+            "document_number": "20790334000113"
+          }
+        },
+        "source": {
+          "device_id": "dvc-dict-aleatoria-02",
+          "channel": "internet_banking",
+          "ip": "198.51.100.32"
+        }
+      },
+      "dict_queries": {
+        "source_account": {
+          "document_number": "58544528635",
+          "response": {
+            "ListFraudMarkersResponse": {
+              "Signature": "",
+              "ResponseTime": "2026-10-18T02:37:43.578Z",
+              "CorrelationId": "df275ae0a7964e6e9b207483fd02742d",
+              "HasMoreElements": true,
+              "Total": 5,
+              "FraudMarkers": {
+                "FraudMarker": [
+                  {
+                    "Id": "4b1d0f5f-7b71-4d66-860c-ac8441565676",
+                    "Status": "REGISTERED",
+                    "TaxIdNumber": "58544528635",
+                    "FraudType": "UNKNOWN",
+                    "Key": "e3a7423d0cf3@example.test",
+                    "CreationTime": "2026-10-18T02:37:43.578Z",
+                    "LastModified": "2026-10-18T02:37:43.578Z",
+                    "InfractionReport": {
+                      "Id": "8cac4f9c-f45b-44a1-ac92-59f37df88f4e"
+                    }
+                  },
+                  {
+                    "Id": "37d697c2-6b3f-47f0-a572-40693aae23ca",
+                    "Status": "CANCELLED",
+                    "TaxIdNumber": "58544528635",
+                    "FraudType": "APPLICATION_FRAUD",
+                    "Key": "2afdaa0247f5@example.test",
+                    "CreationTime": "2026-10-18T02:37:43.578Z",
+                    "LastModified": "2026-10-18T02:37:43.578Z",
+                    "InfractionReport": {
+                      "Id": "2b4916a1-4e1f-4e3f-a138-8637a3118d5d"
+                    }
+                  },
+                  {
+                    "Id": "40f860dd-f1ad-42e6-bf37-1e32c34115d7",
+                    "Status": "REGISTERED",
+                    "TaxIdNumber": "58544528635",
+                    "FraudType": "APPLICATION_FRAUD",
+                    "Key": "97fe60a14b73@example.test",
+                    "CreationTime": "2026-10-18T02:37:43.578Z",
+                    "LastModified": "2026-10-18T02:37:43.578Z",
+                    "InfractionReport": {
+                      "Id": "70f9a727-32ba-4810-9c94-2860956537eb"
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "destination_account": {
+          "document_number": "20790334000113",
+          "response": {
+            "ListFraudMarkersResponse": {
+              "Signature": "",
+              "ResponseTime": "2026-10-18T02:37:43.578Z",
+              "CorrelationId": "3b9d3dc7881e4e90bd2c5c2ee4bf51f9",
+              "HasMoreElements": false,
+              "Total": 1,
+              "FraudMarkers": {
+                "FraudMarker": [
+                  {
+                    "Id": "d63ffc37-930d-40a5-8eaf-9a9e6f655ce3",
+                    "Status": "REGISTERED",
+                    "TaxIdNumber": "20790334000113",
+                    "FraudType": "UNKNOWN",
+                    "Key": "fa084297fb4b@example.test",
+                    "CreationTime": "2026-10-18T02:37:43.578Z",
+                    "LastModified": "2026-10-18T02:37:43.578Z",
+                    "InfractionReport": {
+                      "Id": "cb343dd6-3478-46ce-a63a-1b88400490d2"
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "fixture": "aleatoria_documentos_03.json",
+      "post_payload": {
+        "id": "simulacao-dict-aleatoria-03",
+        "amount": 65000,
+        "transaction_date": "2026-10-17T14:30:00-03:00",
+        "source_account": {
+          "branch": "0001",
+          "account_number": "7200103",
+          "opening_date": "2025-04-12T09:00:00-03:00",
+          "owner": {
+            "document_number": "18244800000113"
+          }
+        },
+        "destination_account": {
+          "participant": "60701190",
+          "branch": "0001",
+          "account_number": "4600103",
+          "opening_date": "2024-04-01T09:00:00-03:00",
+          "owner": {
+            "document_number": "50600607054"
+          }
+        },
+        "source": {
+          "device_id": "dvc-dict-aleatoria-03",
+          "channel": "app",
+          "ip": "198.51.100.33",
+          "geolocation": {
+            "latitude": -23.58,
+            "longitude": -46.62
+          }
+        }
+      },
+      "dict_queries": {
+        "source_account": {
+          "document_number": "18244800000113",
+          "response": {
+            "ListFraudMarkersResponse": {
+              "Signature": "",
+              "ResponseTime": "2026-10-18T02:37:43.578Z",
+              "CorrelationId": "3c8377fc66d74c3f9030ba21f060a1bf",
+              "HasMoreElements": false,
+              "Total": 1,
+              "FraudMarkers": {
+                "FraudMarker": [
+                  {
+                    "Id": "a1b2bc9f-2e2f-4401-99b3-bd5892e598da",
+                    "Status": "CANCELLED",
+                    "TaxIdNumber": "18244800000113",
+                    "FraudType": "MULE_ACCOUNT",
+                    "Key": "84b51cec3baa@example.test",
+                    "CreationTime": "2026-10-18T02:37:43.578Z",
+                    "LastModified": "2026-10-18T02:37:43.578Z",
+                    "InfractionReport": {
+                      "Id": "0fa499a5-f4a1-44bd-9c17-f1a4f2407b43"
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "destination_account": {
+          "document_number": "50600607054",
+          "response": {
+            "ListFraudMarkersResponse": {
+              "Signature": "",
+              "ResponseTime": "2026-10-18T02:37:43.578Z",
+              "CorrelationId": "c2667cbc66ed4d5baca4a7af1b51a734",
+              "HasMoreElements": false,
+              "Total": 3,
+              "FraudMarkers": {
+                "FraudMarker": [
+                  {
+                    "Id": "7c261026-a622-475f-948a-5ffd76301c25",
+                    "Status": "CANCELLED",
+                    "TaxIdNumber": "50600607054",
+                    "FraudType": "APPLICATION_FRAUD",
+                    "Key": "182616e280ca@example.test",
+                    "CreationTime": "2026-10-18T02:37:43.578Z",
+                    "LastModified": "2026-10-18T02:37:43.578Z",
+                    "InfractionReport": {
+                      "Id": "a5899f95-16e9-444f-94ec-616d87d0898e"
+                    }
+                  },
+                  {
+                    "Id": "ee9b78c0-6196-4e19-bfe2-ec4357474225",
+                    "Status": "REGISTERED",
+                    "TaxIdNumber": "50600607054",
+                    "FraudType": "OTHER",
+                    "Key": "3629160355ca@example.test",
+                    "CreationTime": "2026-10-18T02:37:43.578Z",
+                    "LastModified": "2026-10-18T02:37:43.578Z",
+                    "InfractionReport": {
+                      "Id": "3fc033f6-6a7d-4836-aa3a-4ca69816047a"
+                    }
+                  },
+                  {
+                    "Id": "cca2418f-ab1c-489c-af9e-fbbc1be2b820",
+                    "Status": "CANCELLED",
+                    "TaxIdNumber": "50600607054",
+                    "FraudType": "SCAMMER_ACCOUNT",
+                    "Key": "489335e9e3c5@example.test",
+                    "CreationTime": "2026-10-18T02:37:43.578Z",
+                    "LastModified": "2026-10-18T02:37:43.578Z",
+                    "InfractionReport": {
+                      "Id": "9167e32e-33a8-40aa-ac8c-74aabc8fa5cd"
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

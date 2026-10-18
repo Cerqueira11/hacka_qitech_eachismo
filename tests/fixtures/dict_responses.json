@@ -1,0 +1,126 @@
+{
+  "52998224725": {
+    "ListFraudMarkersResponse": {
+      "Signature": "",
+      "ResponseTime": "2026-10-17T10:00:00.000Z",
+      "CorrelationId": "d1a7e9b4c2f640318a5e7d9b0c2f4a61",
+      "HasMoreElements": false,
+      "Total": 0,
+      "FraudMarkers": {
+        "FraudMarker": []
+      }
+    }
+  },
+  "11144477735": {
+    "ListFraudMarkersResponse": {
+      "Signature": "",
+      "ResponseTime": "2026-10-17T10:01:00.000Z",
+      "CorrelationId": "e2b8f0a5d3c741429b6f8e0c1d3a5b72",
+      "HasMoreElements": false,
+      "Total": 1,
+      "FraudMarkers": {
+        "FraudMarker": [
+          {
+            "Id": "a43e2f12-901d-4e31-b10a-802114bc74c5",
+            "Status": "REGISTERED",
+            "TaxIdNumber": "11144477735",
+            "FraudType": "APPLICATION_FRAUD",
+            "Key": "app-fraud@example.test",
+            "CreationTime": "2026-09-21T10:00:00.000Z",
+            "LastModified": "2026-09-21T10:00:00.000Z",
+            "InfractionReport": {
+              "Id": "b54f3012-a12e-4f42-c21b-913225cd85d6"
+            }
+          }
+        ]
+      }
+    }
+  },
+  "12345678909": {
+    "ListFraudMarkersResponse": {
+      "Signature": "",
+      "ResponseTime": "2026-10-17T10:02:00.000Z",
+      "CorrelationId": "f3c901b6e4d85243ac7f9a1d2e4b6c83",
+      "HasMoreElements": true,
+      "Total": 3,
+      "FraudMarkers": {
+        "FraudMarker": [
+          {
+            "Id": "c65a4123-b23f-4053-d32c-a24336de96e7",
+            "Status": "REGISTERED",
+            "TaxIdNumber": "12345678909",
+            "FraudType": "MULE_ACCOUNT",
+            "Key": "mule-example@example.test",
+            "CreationTime": "2026-09-22T10:00:00.000Z",
+            "LastModified": "2026-09-22T10:00:00.000Z",
+            "InfractionReport": {
+              "Id": "d76b5234-c340-4164-e43d-b35447ef07f8"
+            }
+          },
+          {
+            "Id": "e87c6345-d451-4275-f54e-c46558001809",
+            "Status": "REGISTERED",
+            "TaxIdNumber": "12345678909",
+            "FraudType": "SCAMMER_ACCOUNT",
+            "Key": "scammer-example@example.test",
+            "CreationTime": "2026-09-23T10:00:00.000Z",
+            "LastModified": "2026-09-23T10:00:00.000Z",
+            "InfractionReport": {
+              "Id": "f98d7456-e562-4386-a65f-d5766911291a"
+            }
+          }
+        ]
+      }
+    }
+  },
+  "98765432100": {
+    "ListFraudMarkersResponse": {
+      "Signature": "",
+      "ResponseTime": "2026-10-17T10:03:00.000Z",
+      "CorrelationId": "a4da12c7f5e96354bd80a2e3f5c7d194",
+      "HasMoreElements": false,
+      "Total": 1,
+      "FraudMarkers": {
+        "FraudMarker": [
+          {
+            "Id": "09ae8567-f673-4497-b76f-e68770223a2b",
+            "Status": "CANCELLED",
+            "TaxIdNumber": "98765432100",
+            "FraudType": "OTHER",
+            "Key": "cancelled-example@example.test",
+            "CreationTime": "2026-09-24T10:00:00.000Z",
+            "LastModified": "2026-10-01T10:00:00.000Z",
+            "InfractionReport": {
+              "Id": "1abf9678-0784-45a8-c87f-f79881334b3c"
+            }
+          }
+        ]
+      }
+    }
+  },
+  "11222333000181": {
+    "ListFraudMarkersResponse": {
+      "Signature": "",
+      "ResponseTime": "2026-10-17T10:04:00.000Z",
+      "CorrelationId": "b5eb23d806fa7456ce91b3f406d8e2a5",
+      "HasMoreElements": false,
+      "Total": 1,
+      "FraudMarkers": {
+        "FraudMarker": [
+          {
+            "Id": "2bc0a789-1895-46b9-d98a-08a91d244c4d",
+            "Status": "REGISTERED",
+            "TaxIdNumber": "11222333000181",
+            "FraudType": "UNKNOWN",
+            "Key": "unknown-example@example.test",
+            "CreationTime": "2026-09-25T10:00:00.000Z",
+            "LastModified": "2026-09-25T10:00:00.000Z",
+            "InfractionReport": {
+              "Id": "3cd1b89a-2906-47ca-ea9b-19ba2e355d5e"
+            }
+          }
+        ]
+      }
+    }
+  }
+}

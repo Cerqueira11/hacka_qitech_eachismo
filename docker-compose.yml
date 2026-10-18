@@ -32,6 +32,8 @@ services:
       DATABASE_URL: postgresql+psycopg2://bootcamp:bootcamp@db:5432/bootcamp
       APP_ENV: ${APP_ENV:-local}
       SERVICE_NAME: ${SERVICE_NAME:-bootcamp-api}
+      # Opcional: aponte para fixtures locais de teste montadas em /tests.
+      DICT_MOCK_FILE: ${DICT_MOCK_FILE:-/app/mocks/dict_mock.json}
       # A senha que protege os endpoints internos. O padrao vale pra
       # estudar; num sistema de verdade, isso nunca teria valor padrao.
       INTERNAL_TOKEN: ${INTERNAL_TOKEN:-default_token}
@@ -55,6 +57,7 @@ services:
       # Monta o codigo pra dentro do container: salvou o arquivo,
       # a API recarrega sozinha (o --reload ali embaixo).
       - ./src:/app
+      - ./tests/logs:/tests/logs
     # --reload: salvou o arquivo, a API reinicia sozinha.
     command: uvicorn app:app --host 0.0.0.0 --port 3000 --no-server-header --reload
     healthcheck:
@@ -116,4 +119,3 @@ services:
       interval: 3s
       timeout: 3s
       retries: 20
-

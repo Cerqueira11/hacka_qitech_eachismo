@@ -50,6 +50,7 @@ venv/
 
 # --- Testes e cobertura ------------------------------------
 .pytest_cache/
+tests/logs/dict_random_generated_mock.json
 .coverage
 .coverage.*
 htmlcov/
