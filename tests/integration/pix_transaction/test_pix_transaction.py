@@ -122,7 +122,6 @@ class TestPixTransactionValidation:
         assert status == 422
         assert response["code"] == "QIT001008"
 
-
     def test_transaction_date_without_timezone(self):
         payload = PayloadGenerator.create_pix_transaction_payload(transaction_date="2026-10-17T22:15:00")
 

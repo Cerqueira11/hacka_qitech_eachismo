@@ -355,4 +355,3 @@ class RiskRepository:
             .scalar()
         )
         return int(total)
-
