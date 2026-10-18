@@ -1,0 +1,24 @@
+{
+  "id": "demo-scammer-source-20261017",
+  "amount": 18000,
+  "transaction_date": "2026-10-17T15:20:00-03:00",
+  "source_account": {
+    "branch": "0001",
+    "account_number": "4100001",
+    "opening_date": "2021-02-12T09:00:00-03:00",
+    "owner": {"document_number": "96001338914"}
+  },
+  "destination_account": {
+    "participant": "60701190",
+    "branch": "0001",
+    "account_number": "4100002",
+    "opening_date": "2019-05-20T09:00:00-03:00",
+    "owner": {"document_number": "11144477735"}
+  },
+  "source": {
+    "device_id": "demo-device-scammer-001",
+    "channel": "app",
+    "ip": "198.51.100.44",
+    "geolocation": {"latitude": -23.5505, "longitude": -46.6333}
+  }
+}

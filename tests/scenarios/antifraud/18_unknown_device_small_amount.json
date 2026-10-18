@@ -1,0 +1,24 @@
+{
+  "id": "demo-unknown-device-small-20261017",
+  "amount": 7500,
+  "transaction_date": "2026-10-17T15:50:00-03:00",
+  "source_account": {
+    "branch": "0001",
+    "account_number": "1001001",
+    "opening_date": "2020-04-10T09:00:00-03:00",
+    "owner": {"document_number": "52998224725"}
+  },
+  "destination_account": {
+    "participant": "60701190",
+    "branch": "0001",
+    "account_number": "2002001",
+    "opening_date": "2018-06-01T09:00:00-03:00",
+    "owner": {"document_number": "11144477735"}
+  },
+  "source": {
+    "device_id": "demo-device-unregistered-low-001",
+    "channel": "mobile_web",
+    "ip": "198.51.100.47",
+    "geolocation": {"latitude": -23.5505, "longitude": -46.6333}
+  }
+}

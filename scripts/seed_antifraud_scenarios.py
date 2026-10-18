@@ -12,6 +12,7 @@ from jsonschema import validate
 
 ROOT = Path(__file__).resolve().parents[1]
 SCENARIOS_DIR = ROOT / "tests" / "scenarios" / "antifraud"
+HISTORY_DIR = SCENARIOS_DIR / "history"
 TRANSACTION_SCHEMA = ROOT / "src" / "schemas" / "post_pix_transaction.json"
 DEVICE_SCHEMA = ROOT / "src" / "schemas" / "post_device.json"
 DEVICE_REGISTRATION = {
@@ -55,7 +56,45 @@ def post_json(session, url: str, payload: dict, timeout: float):
     return response
 
 
-def seed(base_url: str, token: str, timeout: float, payloads: list[tuple[Path, dict]]) -> None:
+def send_transactions(session, base_url: str, timeout: float, label: str, payloads: list[tuple[Path, dict]]) -> None:
+    for index, (path, payload) in enumerate(payloads, start=1):
+        transaction_id = payload["id"]
+        LOGGER.info("%s %s/%s: iniciando %s (id=%s)", label, index, len(payloads), path.name, transaction_id)
+        response = post_json(session, f"{base_url}/pix/transaction", payload, timeout)
+        result = response.json()
+        response_body = json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True)
+        LOGGER.info("========== [POST RESULT BEGIN] ==========")
+        LOGGER.info("[POST RESULT] HTTP_STATUS=%s TRANSACTION_ID=%s", response.status_code, transaction_id)
+        for line in response_body.splitlines():
+            LOGGER.info("[POST BODY] %s", line)
+        LOGGER.info("========== [POST RESULT END] ==========")
+
+        LOGGER.info("[GET VERIFY START] TRANSACTION_ID=%s", transaction_id)
+        fetched = session.get(
+            f"{base_url}/pix/transaction/{transaction_id}",
+            timeout=timeout,
+        )
+        fetched.raise_for_status()
+        if fetched.json() != result:
+            raise RuntimeError(f"GET divergiu do POST para {transaction_id}")
+        LOGGER.info("[GET VERIFY OK] HTTP_STATUS=%s TRANSACTION_ID=%s", fetched.status_code, transaction_id)
+        LOGGER.info(
+            "[FINAL RESULT] GROUP=%s FILE=%s STATUS=%s RISK_SCORE=%s",
+            label.upper(),
+            path.name,
+            result["status"],
+            result["metadata"]["risk_score"],
+        )
+
+
+def seed(
+    base_url: str,
+    token: str,
+    timeout: float,
+    history_payloads: list[tuple[Path, dict]],
+    scenario_payloads: list[tuple[Path, dict]],
+    seed_only: bool = False,
+) -> None:
     import requests
 
     base_url = base_url.rstrip("/")
@@ -77,28 +116,15 @@ def seed(base_url: str, token: str, timeout: float, payloads: list[tuple[Path, d
         )
         LOGGER.info("Dispositivo registrado: HTTP %s", registration.status_code)
 
-        for index, (path, payload) in enumerate(payloads, start=1):
-            transaction_id = payload["id"]
-            LOGGER.info("Cenario %s/%s: iniciando %s (id=%s)", index, len(payloads), path.name, transaction_id)
-            response = post_json(session, f"{base_url}/pix/transaction", payload, timeout)
-            result = response.json()
+        LOGGER.info("Iniciando carga historica antes dos cenarios")
+        send_transactions(session, base_url, timeout, "Historico", history_payloads)
 
-            LOGGER.info("Consultando transacao criada: GET /pix/transaction/%s", transaction_id)
-            fetched = session.get(
-                f"{base_url}/pix/transaction/{transaction_id}",
-                timeout=timeout,
-            )
-            fetched.raise_for_status()
-            if fetched.json() != result:
-                raise RuntimeError(f"GET divergiu do POST para {transaction_id}")
-            LOGGER.info("GET confirmado para %s: HTTP %s", transaction_id, fetched.status_code)
+        if seed_only:
+            LOGGER.info("Carga historica concluida; cenarios de teste nao foram enviados (--seed-only)")
+            return
 
-            LOGGER.info(
-                "Cenario concluido: %s status=%s risk=%s",
-                path.name,
-                result["status"],
-                result["metadata"]["risk_score"],
-            )
+        LOGGER.info("[HISTORY COMPLETE] Historico pronto; iniciando cenarios antifraude")
+        send_transactions(session, base_url, timeout, "Cenario", scenario_payloads)
 
 
 def main() -> int:
@@ -124,22 +150,32 @@ def main() -> int:
         action="store_true",
         help="Valida os JSONs localmente sem chamar a API",
     )
+    parser.add_argument(
+        "--seed-only",
+        action="store_true",
+        help="Carrega apenas o historico inicial; nao envia os cenarios de teste",
+    )
     args = parser.parse_args()
 
-    LOGGER.info("Carregando arquivos de cenario de %s", SCENARIOS_DIR)
-    payloads = [(path, read_json(path)) for path in sorted(SCENARIOS_DIR.glob("*.json"))]
-    if not payloads:
+    LOGGER.info("Carregando historico inicial de %s", HISTORY_DIR)
+    history_payloads = [(path, read_json(path)) for path in sorted(HISTORY_DIR.glob("*.json"))]
+    LOGGER.info("Carregando cenarios de teste de %s", SCENARIOS_DIR)
+    scenario_payloads = [(path, read_json(path)) for path in sorted(SCENARIOS_DIR.glob("*.json"))]
+    if not history_payloads:
+        raise RuntimeError(f"Nenhum JSON historico encontrado em {HISTORY_DIR}")
+    if not scenario_payloads:
         raise RuntimeError(f"Nenhum JSON encontrado em {SCENARIOS_DIR}")
-    LOGGER.info("%s cenarios carregados", len(payloads))
+    LOGGER.info("%s transacoes historicas e %s cenarios carregados", len(history_payloads), len(scenario_payloads))
 
+    payloads = history_payloads + scenario_payloads
     validate_scenarios(payloads)
     if args.validate_only:
-        LOGGER.info("Validacao local concluida: %s transacoes", len(payloads))
+        LOGGER.info("Validacao local concluida: %s transacoes historicas e %s cenarios", len(history_payloads), len(scenario_payloads))
         return 0
 
     LOGGER.info("Iniciando seed em %s", args.base_url)
-    seed(args.base_url, args.token, args.timeout, payloads)
-    LOGGER.info("Seed concluido: %s transacoes enviadas e consultadas", len(payloads))
+    seed(args.base_url, args.token, args.timeout, history_payloads, scenario_payloads, args.seed_only)
+    LOGGER.info("Seed concluido: historico carregado e %s cenarios processados", 0 if args.seed_only else len(scenario_payloads))
     return 0
 
 
