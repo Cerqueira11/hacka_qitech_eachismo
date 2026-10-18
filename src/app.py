@@ -144,8 +144,8 @@ def create_app() -> FastAPI:
         methods=["GET"]
     )
 
-    # Cadastros que alimentam as regras antifraude: dispositivo (R1) e
-    # vínculo CPF <-> CNPJ (R4).
+    # Cadastros: vínculo CPF <-> CNPJ (R4) e dispositivo. O /device só grava
+    # em registered_device: a R1 consulta a API externa de dispositivo (S2).
     registration_resource = RegistrationResource()
     application.add_api_route(
         "/device",

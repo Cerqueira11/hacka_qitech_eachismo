@@ -1,7 +1,7 @@
 """Motor antifraude: regras → grafo → score → decisão (ETAPAS 2 a 5 de regras_antifraude.txt)."""
 
 import math
-from typing import List
+from typing import Dict, List
 
 from antifraud import config
 from antifraud.context import AntifraudContext
@@ -10,9 +10,27 @@ from antifraud.result import STATUS_BY_ACTION, Action, RuleResult, Verdict
 from antifraud.rules import RULES
 
 
+def effective_weights(hits: List[RuleResult]) -> List[float]:
+    """Pesos que entram no noisy-OR.
+
+    Sinais da mesma família medem a mesma coisa (R2 e R6: desvio de valor):
+    entra só o maior peso da família, senão o mesmo desvio contaria duas vezes.
+    """
+    independent: List[float] = []
+    strongest: Dict[str, float] = {}
+    for hit in hits:
+        if hit.weight <= 0:
+            continue
+        if hit.family is None:
+            independent.append(hit.weight)
+        else:
+            strongest[hit.family] = max(strongest.get(hit.family, 0.0), hit.weight)
+    return independent + list(strongest.values())
+
+
 def combine_rules(hits: List[RuleResult]) -> float:
     """noisy-OR dos pesos, com o desconto de R7 (teto MAX_DISCOUNT)."""
-    not_fraud = math.prod(1 - hit.weight for hit in hits if hit.weight > 0)
+    not_fraud = math.prod(1 - weight for weight in effective_weights(hits))
     discount = min(config.MAX_DISCOUNT, sum(hit.discount for hit in hits))
     return (1 - not_fraud) * (1 - discount)
 

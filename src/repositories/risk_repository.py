@@ -1,11 +1,20 @@
-from datetime import datetime
+from datetime import datetime, timedelta, tzinfo
 from typing import List, Set, Tuple
 from uuid import UUID
 
-from sqlalchemy import exists, func, or_, and_, select
+from sqlalchemy import Date, Interval, and_, cast, exists, func, or_, select
 
 from database import Context
-from models import Geolocation, PersonLink, RegisteredDevice, StatusResultHistory, TransactionHistory
+from models import Geolocation, PersonLink, StatusResultHistory, TransactionHistory
+
+
+def _utc_offset(local_tz: tzinfo) -> str:
+    """'-03:00' para UTC-3. O timedelta de Python (-1 dia + 21h) não serve:
+    o Postgres recusa fuso em interval com dias."""
+    minutes = int(local_tz.utcoffset(None).total_seconds() // 60)
+    sign = "-" if minutes < 0 else "+"
+    hours, minutes = divmod(abs(minutes), 60)
+    return f"{sign}{hours:02d}:{minutes:02d}"
 
 
 def latest_status():
@@ -28,44 +37,92 @@ def not_rejected():
 class RiskRepository:
     """As consultas que alimentam as regras antifraude.
 
-    Todas olham só o passado: a janela termina em `as_of` (a data do Pix em
-    análise), e o Pix em análise ainda não foi gravado quando elas rodam.
+    O Pix em análise ainda não foi gravado quando elas rodam. Os históricos
+    terminam em `as_of` (a data do Pix em análise); as somas de período
+    corrente (dia da R1, noite da R2) cobrem o período inteiro, para que o
+    lock por origem (C4) as mantenha corretas em rajadas paralelas.
     """
 
     def __init__(self, context: Context) -> None:
         self.session = context.db_session
 
     # ── R1: dispositivo ─────────────────────────────────────────────────
-    def is_device_registered(self, document_number: str, device_id: str) -> bool:
-        return self.session.query(
-            exists().where(
-                RegisteredDevice.document_number == document_number,
-                RegisteredDevice.device_id == device_id,
-            )
-        ).scalar()
+    def sum_unregistered_device_amount(self, source_account_id: UUID, start: datetime, end: datetime) -> int:
+        """Quanto a origem movimentou em [start, end) por dispositivos não cadastrados.
 
-    def sum_unregistered_device_amount(
-        self, source_account_id: UUID, document_number: str, since: datetime, as_of: datetime
-    ) -> int:
-        """Quanto a conta já movimentou no período por dispositivos não cadastrados."""
-        registered = exists().where(
-            RegisteredDevice.document_number == document_number,
-            RegisteredDevice.device_id == TransactionHistory.source_device_id,
-        )
+        Usa o device_registered gravado em cada Pix (a resposta da API de
+        dispositivo naquele momento, S2). Pix com a API indisponível (NULL) não
+        entram: a R1 não foi avaliada neles, e contar seria rejeitar por falha nossa.
+
+        A janela é o dia inteiro, não "até o Pix atual": com o lock por origem
+        (C4), um Pix processado depois enxerga todos os que já foram gravados,
+        mesmo que o transaction_date dele seja um pouco anterior.
+        """
         total = (
             self.session.query(func.coalesce(func.sum(TransactionHistory.amount), 0))
             .filter(
                 TransactionHistory.source_account_id == source_account_id,
-                TransactionHistory.transaction_date >= since,
-                TransactionHistory.transaction_date <= as_of,
-                ~registered,
+                TransactionHistory.transaction_date >= start,
+                TransactionHistory.transaction_date < end,
+                TransactionHistory.device_registered.is_(False),
                 not_rejected(),
             )
             .scalar()
         )
         return int(total)
 
-    # ── R2 / R6: histórico de valores ───────────────────────────────────
+    # ── R2: padrão noturno ──────────────────────────────────────────────
+    def sum_source_amount(self, source_account_id: UUID, start: datetime, end: datetime) -> int:
+        """Soma da origem em [start, end): approved + 2FA pendente (não rejeitados)."""
+        total = (
+            self.session.query(func.coalesce(func.sum(TransactionHistory.amount), 0))
+            .filter(
+                TransactionHistory.source_account_id == source_account_id,
+                TransactionHistory.transaction_date >= start,
+                TransactionHistory.transaction_date < end,
+                not_rejected(),
+            )
+            .scalar()
+        )
+        return int(total)
+
+    def night_totals_stats(
+        self,
+        source_account_id: UUID,
+        since: datetime,
+        until: datetime,
+        local_tz: tzinfo,
+        night_start_hour: int,
+        night_end_hour: int,
+    ) -> Tuple[int, float]:
+        """(noites com Pix, média das somas dessas noites) em [since, until).
+
+        Uma noite vai das night_start_hour às night_end_hour do dia seguinte,
+        no fuso local_tz. Deslocar o horário local em -night_start_hour faz
+        todos os Pix da mesma noite caírem na mesma data, que vira a chave.
+        """
+        local_time = func.timezone(cast(_utc_offset(local_tz), Interval), TransactionHistory.transaction_date)
+        hour = func.extract("hour", local_time)
+        night_key = cast(local_time - timedelta(hours=night_start_hour), Date)
+
+        nightly = (
+            select(func.sum(TransactionHistory.amount).label("total"))
+            .where(
+                TransactionHistory.source_account_id == source_account_id,
+                TransactionHistory.transaction_date >= since,
+                TransactionHistory.transaction_date < until,
+                or_(hour >= night_start_hour, hour < night_end_hour),
+                not_rejected(),
+            )
+            .group_by(night_key)
+            .subquery()
+        )
+        nights, average = self.session.execute(
+            select(func.count(), func.coalesce(func.avg(nightly.c.total), 0)).select_from(nightly)
+        ).one()
+        return int(nights), float(average)
+
+    # ── R6: histórico de valores ────────────────────────────────────────
     def list_source_history(
         self, source_account_id: UUID, since: datetime, as_of: datetime, limit: int = 500
     ) -> List[Tuple[int, datetime]]:

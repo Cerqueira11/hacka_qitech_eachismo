@@ -1,6 +1,6 @@
 {
   "title": "PostDevice",
-  "description": "Cadastra um dispositivo de um cliente (regra R1).",
+  "description": "Cadastra um dispositivo de um cliente em registered_device (a R1 consulta a API externa de dispositivo).",
   "type": "object",
   "properties": {
     "document_number": {

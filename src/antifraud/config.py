@@ -6,7 +6,7 @@ ponto de partida, não decisão final. Valores em centavos.
 
 from datetime import timedelta, timezone
 
-ENGINE_VERSION = "1.0.0"
+ENGINE_VERSION = "2.0.0"
 
 # Brasil sem horário de verão desde 2019: UTC-3 fixo (o mesmo do scheduler).
 BRASILIA = timezone(timedelta(hours=-3))
@@ -17,22 +17,27 @@ NIGHT_END_HOUR = 6     # ... até 05h59
 HISTORY_WINDOW_DAYS = 90
 LOG_STD_FLOOR = 0.2  # desvio mínimo em ln(valor): evita z infinito para quem paga sempre o mesmo valor
 
-# R1 — dispositivo não cadastrado (limite regulatório)
+# R1 — dispositivo não cadastrado (limite de dispositivo novo). O cadastro
+# vem da API externa de dispositivo (S2).
 UNREGISTERED_DEVICE_TX_LIMIT = 20_000
 UNREGISTERED_DEVICE_DAILY_LIMIT = 100_000
 UNREGISTERED_DEVICE_WEIGHT = 0.15
+DEVICE_API_UNAVAILABLE_WEIGHT = 0.30
 
-# R2 — transferência noturna fora do padrão (só peso)
-NIGHT_MIN_HISTORY = 3
-NIGHT_Z_THRESHOLD = 2.0
-NIGHT_WEIGHT_PER_Z = 0.10
-NIGHT_MAX_WEIGHT = 0.40
-NIGHT_FALLBACK_MIN_HISTORY = 5
-NIGHT_FALLBACK_MEDIAN_MULTIPLIER = 3
-NIGHT_FALLBACK_WEIGHT = 0.20
+# R2 — desvio do padrão noturno (só peso, nunca REJECT) (a calibrar)
+NIGHT_LOOKBACK_DAYS = 90
+NIGHT_MIN_NIGHTS = 3             # noites com Pix nos últimos 90 dias
+NIGHT_MODERATE_MULTIPLIER = 3    # soma da noite + amount acima de 3x a média ...
+NIGHT_MODERATE_WEIGHT = 0.20
+NIGHT_HIGH_MULTIPLIER = 5        # ... e acima de 5x
+NIGHT_HIGH_WEIGHT = 0.40
 
-# R3 — vínculo conta x documento
-OWNER_MISMATCH_FLOOR = 0.80
+# R2 e R6 medem a mesma coisa (desvio de valor): no score vale o maior peso
+# entre as duas, não os dois somados.
+AMOUNT_DEVIATION_FAMILY = "desvio_valor"
+
+# R3 — vínculo conta x documento (só contra nó verificado, sem DICT)
+OWNER_MISMATCH_FLOOR = 0.80      # origem; o destino rejeita sem piso
 
 # R4 — fraude na pessoa (DICT)
 MARKED_FLOOR = 1.0

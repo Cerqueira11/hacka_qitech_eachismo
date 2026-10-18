@@ -1,4 +1,4 @@
-from sqlalchemy import BigInteger, Column, DateTime, ForeignKey, Identity, Numeric, String, func
+from sqlalchemy import BigInteger, Boolean, Column, DateTime, ForeignKey, Identity, Numeric, String, func
 from sqlalchemy.dialects.postgresql import INET, UUID
 from sqlalchemy.orm import relationship
 
@@ -20,6 +20,10 @@ class TransactionHistory(Base):
     source_ip = Column(INET, nullable=False)
     source_geolocation = Column(UUID(as_uuid=True), ForeignKey("geolocation.id_geolocation"), nullable=True)
     risk_score = Column(Numeric(5, 4), nullable=True)
+    # SHA-256 do payload normalizado (C4). NULL só em linhas anteriores à v2.
+    payload_sha256 = Column(String(64), nullable=True)
+    # Resposta da API de dispositivo no momento do Pix (S2); NULL = indisponível.
+    device_registered = Column(Boolean, nullable=True)
     transaction_date = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
     created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
 

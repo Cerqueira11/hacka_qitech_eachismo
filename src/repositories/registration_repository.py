@@ -7,7 +7,7 @@ from models import PersonLink, RegisteredDevice
 
 
 class RegistrationRepository:
-    """Cadastros que alimentam as regras: dispositivos (R1) e vínculos CPF <-> CNPJ (R4)."""
+    """Cadastros: vínculos CPF <-> CNPJ (R4) e dispositivos (registered_device, fora da R1 desde a S2)."""
 
     def __init__(self, context: Context) -> None:
         self.session = context.db_session

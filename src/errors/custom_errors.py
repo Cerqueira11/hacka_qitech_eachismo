@@ -54,3 +54,21 @@ class InvalidIpAddress(QIException):
         description = f"'{ip}' is not a valid IPv4 or IPv6 address."
         translation = f"'{ip}' não é um endereço IPv4 ou IPv6 válido."
         super().__init__(title, self.code, http_status, description, translation)
+
+
+class IdempotencyConflict(QIException):
+    # Código proposto: o catálogo ainda não fechou este número (ver "Em aberto").
+    code = "QIT001016"
+
+    def __init__(self, transaction_id: str) -> None:
+        title = "Idempotency Conflict"
+        http_status = 409
+        description = (
+            f"Pix transaction '{transaction_id}' was already analyzed with a different payload. "
+            "Resend the original payload or use a new id."
+        )
+        translation = (
+            f"A transação PIX '{transaction_id}' já foi analisada com outro conteúdo. "
+            "Reenvie o payload original ou use um novo id."
+        )
+        super().__init__(title, self.code, http_status, description, translation)

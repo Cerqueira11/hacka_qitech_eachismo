@@ -1,16 +1,21 @@
 """Cliente do DICT (Diretório de Identificadores de Contas Transacionais do BCB).
 
-Só existe a versão simulada: o DICT real consulta vínculos por CHAVE Pix
-(GET /entries/{Key}), e o payload deste serviço não traz chave. Quando trouxer,
-um cliente real (subclasse de RestConnector) entra no lugar do mock com os
-mesmos dois métodos.
+Só existe a versão simulada, e ela responde uma coisa só: as estatísticas de
+fraude de um CPF/CNPJ (GET /persons/{TaxIdNumber}/statistics), usadas pela R4.
+
+O vínculo conta x titular NÃO vem daqui (C2): o DICT é indexado por chave Pix
+(GET /entries/{Key}) e não busca por conta, e o payload deste serviço não traz
+chave. A R3 compara o payload com o account_node verificado.
+
+Um cliente real (subclasse de RestConnector) entra no lugar do mock com o
+mesmo método get_person_risk.
 """
 
 import json
 import os
 import threading
 from dataclasses import dataclass
-from typing import Optional, Tuple
+from typing import Tuple
 
 from constants import DICT_MOCK_FILE
 
@@ -28,11 +33,6 @@ WEAK_FRAUD_TYPES = frozenset({"OTHER", "UNKNOWN"})
 
 class DictUnavailable(Exception):
     """O DICT não respondeu (timeout, erro). Quem chama decide o que fazer."""
-
-
-@dataclass(frozen=True)
-class DictEntry:
-    owner_document_number: str
 
 
 @dataclass(frozen=True)
@@ -73,21 +73,6 @@ class DictMockClient:
 
     def __init__(self, fixture_path: str = DICT_MOCK_FILE) -> None:
         self.fixture_path = fixture_path
-
-    def get_entry(self, participant: str, branch: str, account_number: str, payload_owner: str) -> Optional[DictEntry]:
-        """Vínculo da conta no DICT. None quando a conta não existe no DICT.
-
-        Fora das contas listadas no arquivo, o mock confirma o titular do payload.
-        """
-        self._raise_if_unavailable(payload_owner)
-        entries = self._data().get("entries", {})
-        key = f"{participant}/{branch}/{account_number}"
-        if key not in entries:
-            return DictEntry(owner_document_number=payload_owner)
-        entry = entries[key]
-        if entry is None:
-            return None
-        return DictEntry(owner_document_number=entry["Owner"]["TaxIdNumber"])
 
     def get_person_risk(self, document_number: str) -> DictPersonRisk:
         self._raise_if_unavailable(document_number)

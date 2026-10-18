@@ -24,6 +24,16 @@ INSTITUTION_ISPB = os.environ.get("INSTITUTION_ISPB", "00000000")
 # É lido a cada consulta, então editar o arquivo vale na hora, sem reiniciar.
 DICT_MOCK_FILE = os.environ.get("DICT_MOCK_FILE", os.path.join(SERVICE_ROOT, "mocks", "dict_mock.json"))
 
+# API externa de dispositivo cadastrado (R1, decisão S2). O motor lê só o
+# campo booleano "registered" de GET /devices/{document_number}/{device_id}.
+# Sem URL configurada a API conta como indisponível: a R1 pede 2FA, nunca
+# aprova às cegas. No docker compose ela aponta para o mockserver.
+DEVICE_API_URL = os.environ.get("DEVICE_API_URL", "").rstrip("/")
+DEVICE_API_INTERNAL_TOKEN = os.environ.get("DEVICE_API_INTERNAL_TOKEN", "default_token")
+# Timeout curto (segundos): a chamada roda antes do lock, mas ainda dentro
+# do tempo de resposta que a IF espera da gente.
+DEVICE_API_TIMEOUT = float(os.environ.get("DEVICE_API_TIMEOUT", "0.2"))
+
 # Liga a impressao de TODO SQL que o SQLAlchemy emite. Serve pra
 # responder "que consulta esse repository virou, afinal?" sem abrir o
 # banco do lado. Quem lê isto é o src/utils/logger.py, e o porquê de

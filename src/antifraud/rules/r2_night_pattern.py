@@ -1,38 +1,34 @@
-"""R2 — Transferência noturna fora do padrão. Só peso: nunca bloqueia, vale para PF e PJ.
+"""R2 — Desvio do padrão noturno (C3). Só peso: nunca rejeita.
 
-O limite noturno regulatório (R$ 1.000) está fora do escopo deste serviço.
+O limite noturno é decisão do cliente no BaaS e é aplicado por quem executa o
+Pix. Aqui a R2 só compara a noite corrente com o histórico noturno do próprio
+cliente. Mede desvio de valor, como a R6: no score vale o maior peso entre as duas.
 """
 
 from typing import List
 
 from antifraud import config
-from antifraud.context import AntifraudContext, is_night
+from antifraud.context import AntifraudContext
 from antifraud.result import RuleResult
-from antifraud.stats import log_zscore, median_of
 
 RULE = "R2"
-REASON = "noturna_atipica"
+REASON = "desvio_noturno"
 
 
 def evaluate(ctx: AntifraudContext, previous: List[RuleResult]) -> List[RuleResult]:
     if not ctx.is_night:
         return []
 
-    amount = ctx.data.amount
-    night_amounts = [value for value, date in ctx.source_history if is_night(date.astimezone(config.BRASILIA))]
-
-    if len(night_amounts) >= config.NIGHT_MIN_HISTORY:
-        z = log_zscore(amount, night_amounts, config.LOG_STD_FLOOR)
-        if z is not None and z > config.NIGHT_Z_THRESHOLD:
-            # Quanto mais acima do padrão noturno, maior o peso.
-            weight = min(config.NIGHT_MAX_WEIGHT, config.NIGHT_WEIGHT_PER_Z * z)
-            return [RuleResult(RULE, REASON, weight=weight)]
+    # Pouco histórico noturno: o valor isolado fica com a R6.
+    if ctx.nights_with_pix < config.NIGHT_MIN_NIGHTS or ctx.night_average <= 0:
         return []
 
-    # Pouco histórico noturno: compara com o padrão geral da conta.
-    all_amounts = [value for value, _ in ctx.source_history]
-    if len(all_amounts) >= config.NIGHT_FALLBACK_MIN_HISTORY:
-        if amount > config.NIGHT_FALLBACK_MEDIAN_MULTIPLIER * median_of(all_amounts):
-            return [RuleResult(RULE, REASON, weight=config.NIGHT_FALLBACK_WEIGHT)]
+    total = ctx.night_amount + ctx.data.amount
+    if total > config.NIGHT_HIGH_MULTIPLIER * ctx.night_average:
+        weight = config.NIGHT_HIGH_WEIGHT
+    elif total > config.NIGHT_MODERATE_MULTIPLIER * ctx.night_average:
+        weight = config.NIGHT_MODERATE_WEIGHT
+    else:
+        return []
 
-    return []
+    return [RuleResult(RULE, REASON, weight=weight, family=config.AMOUNT_DEVIATION_FAMILY)]

@@ -7,7 +7,7 @@ from utils.document_number import normalize_document_number, person_type_of
 
 
 class RegistrationController(BaseController):
-    """Cadastros que alimentam as regras antifraude: dispositivos (R1) e vínculos CPF <-> CNPJ (R4)."""
+    """Cadastros: vínculos CPF <-> CNPJ (R4) e dispositivos (registered_device, que a R1 não lê mais: S2)."""
 
     def __init__(self) -> None:
         super().__init__(__name__)

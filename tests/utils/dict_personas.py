@@ -12,7 +12,4 @@ WEAK_SIGNAL = "16155940789"              # marcação OTHER: só peso
 DICT_UNAVAILABLE = "81618495950"         # o DICT não responde para este documento
 MULE_CNPJ = "92832764000161"             # CNPJ laranja, para vincular com POST /person_link
 
-# Contas de destino com resposta fixa no DICT (participant 60701190, agência 0001).
-ACCOUNT_NOT_IN_DICT = "99999"
-ACCOUNT_WITH_OTHER_OWNER = "88888"
-DICT_ACCOUNT_BRANCH = "0001"
+# O DICT simulado não responde mais vínculo conta x titular (C2): a R3 usa o account_node.

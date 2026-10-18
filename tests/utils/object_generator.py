@@ -1,5 +1,6 @@
 from typing import Optional, Tuple
 
+from tests.utils.device_api_mock import DeviceApiMock
 from tests.utils.payload_generator import PayloadGenerator, only_digits
 from tests.utils.request_generator import RequestGenerator
 
@@ -17,10 +18,8 @@ class ObjectGenerator:
 
     @staticmethod
     def register_device(document_number: str, device_id: str) -> None:
-        status, response = RequestGenerator.POST_device(
-            PayloadGenerator.create_device_payload(document_number, device_id)
-        )
-        assert status in (200, 201), response
+        """Faz a API de dispositivo (mockserver) responder "registered": true (S2)."""
+        DeviceApiMock.registered(only_digits(document_number), device_id)
 
     @staticmethod
     def create_pix_from_registered_device(**kwargs) -> Tuple[dict, dict]:

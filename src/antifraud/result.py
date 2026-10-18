@@ -18,7 +18,8 @@ class RuleResult:
     action: Action = Action.NONE
     weight: float = 0.0              # entra no noisy-OR do rules_score
     discount: float = 0.0            # só R7: reduz o rules_score
-    floor: Optional[float] = None    # piso do risk_score final (R3, R4 marcado)
+    floor: Optional[float] = None    # piso do risk_score final (R3 origem, R4 marcado)
+    family: Optional[str] = None     # sinais da mesma família: só o maior peso entra no score
 
     def to_dict(self) -> dict:
         item = {
@@ -31,6 +32,8 @@ class RuleResult:
             item["discount"] = round(self.discount, 4)
         if self.floor is not None:
             item["floor"] = self.floor
+        if self.family is not None:
+            item["family"] = self.family
         return item
 
 
