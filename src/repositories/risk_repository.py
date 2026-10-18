@@ -292,3 +292,63 @@ class RiskRepository:
             or 0
         )
 
+    # ── R9: conta de passagem (pass-through / mula) ─────────────────────
+    # Comportamento acumulado na janela, só o que movimentou dinheiro
+    # (not_rejected): fan-in (origens distintas que pagaram a conta), fan-out
+    # (destinos distintos que a conta pagou) e os volumes que entraram e saíram.
+    def count_distinct_sources_to(self, account_id: UUID, since: datetime, as_of: datetime) -> int:
+        """Quantas origens distintas pagaram esta conta em [since, as_of] (fan-in)."""
+        return (
+            self.session.query(func.count(func.distinct(TransactionHistory.source_account_id)))
+            .filter(
+                TransactionHistory.destination_account_id == account_id,
+                TransactionHistory.transaction_date >= since,
+                TransactionHistory.transaction_date <= as_of,
+                not_rejected(),
+            )
+            .scalar()
+            or 0
+        )
+
+    def count_distinct_destinations_from(self, account_id: UUID, since: datetime, as_of: datetime) -> int:
+        """Para quantos destinos distintos esta conta pagou em [since, as_of] (fan-out)."""
+        return (
+            self.session.query(func.count(func.distinct(TransactionHistory.destination_account_id)))
+            .filter(
+                TransactionHistory.source_account_id == account_id,
+                TransactionHistory.transaction_date >= since,
+                TransactionHistory.transaction_date <= as_of,
+                not_rejected(),
+            )
+            .scalar()
+            or 0
+        )
+
+    def sum_incoming_amount(self, account_id: UUID, since: datetime, as_of: datetime) -> int:
+        """Total que ENTROU na conta (recebido como destino) em [since, as_of]."""
+        total = (
+            self.session.query(func.coalesce(func.sum(TransactionHistory.amount), 0))
+            .filter(
+                TransactionHistory.destination_account_id == account_id,
+                TransactionHistory.transaction_date >= since,
+                TransactionHistory.transaction_date <= as_of,
+                not_rejected(),
+            )
+            .scalar()
+        )
+        return int(total)
+
+    def sum_outgoing_amount(self, account_id: UUID, since: datetime, as_of: datetime) -> int:
+        """Total que SAIU da conta (enviado como origem) em [since, as_of]."""
+        total = (
+            self.session.query(func.coalesce(func.sum(TransactionHistory.amount), 0))
+            .filter(
+                TransactionHistory.source_account_id == account_id,
+                TransactionHistory.transaction_date >= since,
+                TransactionHistory.transaction_date <= as_of,
+                not_rejected(),
+            )
+            .scalar()
+        )
+        return int(total)
+

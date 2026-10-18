@@ -166,3 +166,85 @@ class TestN1AndN2:
         assert takeover_hit.action == Action.TWO_FACTOR
         assert takeover_hit.weight == config.TAKEOVER_COMBO_WEIGHT
 
+
+
+class TestR9PassThrough:
+    """R9 — conta de passagem: fan-in alto + fan-out baixo + não retém o dinheiro."""
+
+    def ctx(
+        self,
+        source_fan_in=0, source_fan_out=0, source_ratio=0.0,
+        destination_fan_in=0, destination_fan_out=0, destination_ratio=0.0,
+    ):
+        return SimpleNamespace(
+            source_fan_in=source_fan_in,
+            source_fan_out=source_fan_out,
+            source_pass_through_ratio=source_ratio,
+            destination_fan_in=destination_fan_in,
+            destination_fan_out=destination_fan_out,
+            destination_pass_through_ratio=destination_ratio,
+        )
+
+    def test_source_pass_through_asks_2fa(self):
+        from antifraud.rules import r9_pass_through
+        ctx = self.ctx(source_fan_in=10, source_fan_out=2, source_ratio=0.95)
+        [hit] = r9_pass_through.evaluate(ctx, [])
+        assert (hit.rule, hit.reason, hit.action, hit.weight) == (
+            "R9", "origem_conta_passagem", Action.TWO_FACTOR, config.R9_WEIGHT,
+        )
+
+    def test_destination_pass_through_asks_2fa(self):
+        from antifraud.rules import r9_pass_through
+        ctx = self.ctx(destination_fan_in=12, destination_fan_out=1, destination_ratio=0.90)
+        [hit] = r9_pass_through.evaluate(ctx, [])
+        assert (hit.rule, hit.reason, hit.action) == ("R9", "destino_conta_passagem", Action.TWO_FACTOR)
+
+    def test_both_sides_can_fire(self):
+        from antifraud.rules import r9_pass_through
+        ctx = self.ctx(
+            source_fan_in=8, source_fan_out=3, source_ratio=0.80,
+            destination_fan_in=9, destination_fan_out=0, destination_ratio=1.0,
+        )
+        reasons = {h.reason for h in r9_pass_through.evaluate(ctx, [])}
+        assert reasons == {"origem_conta_passagem", "destino_conta_passagem"}
+
+    def test_low_fan_in_does_not_fire(self):
+        from antifraud.rules import r9_pass_through
+        # fan-in abaixo do mínimo (7 < 8): não é mula, mesmo com fan-out baixo e ratio alto
+        ctx = self.ctx(source_fan_in=7, source_fan_out=1, source_ratio=0.99)
+        assert r9_pass_through.evaluate(ctx, []) == []
+
+    def test_high_fan_out_does_not_fire(self):
+        from antifraud.rules import r9_pass_through
+        # recebe de muitos mas espalha para muitos destinos: parece varejo, não mula
+        ctx = self.ctx(source_fan_in=50, source_fan_out=40, source_ratio=0.95)
+        assert r9_pass_through.evaluate(ctx, []) == []
+
+    def test_retains_money_does_not_fire(self):
+        from antifraud.rules import r9_pass_through
+        # recebe de muitos e repassa pouco, MAS retém o dinheiro (ratio baixo): varejista legítimo
+        ctx = self.ctx(source_fan_in=20, source_fan_out=2, source_ratio=0.10)
+        assert r9_pass_through.evaluate(ctx, []) == []
+
+
+class TestR9PassThroughRatio:
+    """A razão saída/entrada no contexto real (properties do AntifraudContext)."""
+
+    def _context(self, **kwargs):
+        from datetime import datetime
+        from antifraud.context import AntifraudContext
+        base = dict(
+            data=None, source=None, destination=None,
+            as_of=datetime(2026, 10, 17, tzinfo=config.BRASILIA),
+            local_time=datetime(2026, 10, 17, tzinfo=config.BRASILIA),
+        )
+        base.update(kwargs)
+        return AntifraudContext(**base)
+
+    def test_ratio_is_outgoing_over_incoming(self):
+        ctx = self._context(source_incoming=100000, source_outgoing=95000)
+        assert ctx.source_pass_through_ratio == pytest.approx(0.95)
+
+    def test_ratio_zero_when_nothing_came_in(self):
+        ctx = self._context(destination_incoming=0, destination_outgoing=5000)
+        assert ctx.destination_pass_through_ratio == 0.0

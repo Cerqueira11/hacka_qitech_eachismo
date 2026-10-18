@@ -11,6 +11,7 @@ from antifraud.rules import (
     r6_amount_outlier,
     r7_recurring_payment,
     r8_velocity,
+    r9_pass_through,
 )
 
 RULES = (
@@ -22,6 +23,7 @@ RULES = (
     r6_amount_outlier.evaluate,
     r7_recurring_payment.evaluate,
     r8_velocity.evaluate,
+    r9_pass_through.evaluate,
     extra_signals.evaluate,
 )
 

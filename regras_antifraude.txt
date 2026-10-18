@@ -243,6 +243,23 @@ ETAPA 2 — Regras
     mesmo device_id em >= 3 contas de origem em 24 h ............. passa, peso 0.30
                                                                    motivo "device_compartilhado"
 
+  R9 — Conta de passagem (pass-through / mula) (a calibrar)
+    Padrão da conta laranja: recebe de MUITAS origens, repassa para POUCOS
+    destinos e NÃO retém o dinheiro. Olha o comportamento ACUMULADO da conta nos
+    últimos 90 dias (Pix não rejeitados), não uma rajada curta. Avalia os dois
+    lados: a conta mula pode ser a origem (repassando agora) ou o destino
+    (recebendo para repassar). Os três sinais são exigidos juntos nos dois lados.
+      fan_in   = origens distintas que pagaram a conta         (>= 8)
+      fan_out  = destinos distintos que a conta pagou          (<= 3)
+      razão    = total que saiu / total que entrou             (>= 0.80)
+    origem bate os três ......................................... 2FA, peso 0.40
+                                                                   motivo "origem_conta_passagem"
+    destino bate os três ........................................ 2FA, peso 0.40
+                                                                   motivo "destino_conta_passagem"
+    A razão saída/entrada é o que separa a mula do varejista legítimo (recebe de
+    muitos mas acumula/saca em vez de repassar). 2FA, nunca REJECT direto:
+    intermediadores legítimos existem.
+
   Sinais extras (sem ação fixa, só peso)
     conta destino aberta há menos de 30 dias ..................... peso 0.20 "destino_conta_nova"
     primeiro Pix da origem para este destino ..................... peso 0.10 "destino_desconhecido"

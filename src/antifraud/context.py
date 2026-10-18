@@ -78,6 +78,16 @@ class AntifraudContext:
     has_previous_edge_to_destination: bool = False
     has_previous_pair_edge: bool = False
 
+    # R9 — conta de passagem (pass-through): comportamento acumulado na janela.
+    source_fan_in: int = 0           # origens distintas que pagaram a ORIGEM deste Pix
+    source_fan_out: int = 0          # destinos distintos que a ORIGEM pagou
+    source_incoming: int = 0         # total que entrou na ORIGEM
+    source_outgoing: int = 0         # total que saiu da ORIGEM
+    destination_fan_in: int = 0      # origens distintas que pagaram o DESTINO deste Pix
+    destination_fan_out: int = 0     # destinos distintos que o DESTINO pagou
+    destination_incoming: int = 0    # total que entrou no DESTINO
+    destination_outgoing: int = 0    # total que saiu do DESTINO
+
     # De fora (ExternalSignals)
     device_api_available: bool = True
     device_registered: bool = False
@@ -95,6 +105,16 @@ class AntifraudContext:
     def destination_age_days(self) -> float:
         opening_date = self.destination.opening_date or self.data.destination_account.opening_date
         return (self.as_of - opening_date).total_seconds() / 86400
+
+    @property
+    def source_pass_through_ratio(self) -> float:
+        """(saiu) / (entrou) na ORIGEM. 0 se nada entrou (não há o que repassar)."""
+        return (self.source_outgoing / self.source_incoming) if self.source_incoming > 0 else 0.0
+
+    @property
+    def destination_pass_through_ratio(self) -> float:
+        """(saiu) / (entrou) no DESTINO. 0 se nada entrou (não há o que repassar)."""
+        return (self.destination_outgoing / self.destination_incoming) if self.destination_incoming > 0 else 0.0
 
 
 class ContextBuilder:
@@ -244,6 +264,18 @@ class ContextBuilder:
         ctx.has_previous_pair_edge = self.risk.has_edge(
             source.id_account, destination.id_account, either_direction=True
         )
+
+        # R9 — conta de passagem: fan-in, fan-out e volumes acumulados na janela,
+        # para origem e destino (o padrão mula pode estar dos dois lados).
+        r9_since = as_of - timedelta(days=config.R9_WINDOW_DAYS)
+        ctx.source_fan_in = self.risk.count_distinct_sources_to(source.id_account, r9_since, as_of)
+        ctx.source_fan_out = self.risk.count_distinct_destinations_from(source.id_account, r9_since, as_of)
+        ctx.source_incoming = self.risk.sum_incoming_amount(source.id_account, r9_since, as_of)
+        ctx.source_outgoing = self.risk.sum_outgoing_amount(source.id_account, r9_since, as_of)
+        ctx.destination_fan_in = self.risk.count_distinct_sources_to(destination.id_account, r9_since, as_of)
+        ctx.destination_fan_out = self.risk.count_distinct_destinations_from(destination.id_account, r9_since, as_of)
+        ctx.destination_incoming = self.risk.sum_incoming_amount(destination.id_account, r9_since, as_of)
+        ctx.destination_outgoing = self.risk.sum_outgoing_amount(destination.id_account, r9_since, as_of)
 
         ctx.dict_available = external.dict_available
         ctx.source_person = external.source_person

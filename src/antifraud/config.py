@@ -97,6 +97,18 @@ IP_SHARED_WEIGHT = 0.30
 # N2 — Combo de tomada de conta (account takeover)
 TAKEOVER_COMBO_WEIGHT = 0.40
 
+# R9 — conta de passagem (pass-through / mula). Olha o comportamento ACUMULADO
+# da conta na janela (90d), não uma rajada curta: recebe de muitas origens
+# distintas (fan-in), repassa para poucos destinos (fan-out) e não retém o
+# dinheiro (razão saída/entrada perto de 1). Avalia origem e destino do Pix.
+# O pass_through_ratio é o que separa mula de varejista legítimo (que recebe de
+# muitos mas acumula/saca em vez de repassar). Exigido nos dois lados (conservador).
+R9_WINDOW_DAYS = 90
+R9_FANIN_MIN = 8               # origens distintas que pagaram a conta
+R9_FANOUT_MAX = 3              # destinos distintos que a conta pagou
+R9_PASSTHROUGH_RATIO = 0.80    # (total que saiu) / (total que entrou) >= isto
+R9_WEIGHT = 0.40
+
 # D2 — TTL para 2FA pendente
 TWO_FACTOR_TTL_MINUTES = 15
 
