@@ -29,3 +29,20 @@ class PixTransactionResource:
             content=jsonable_encoder(result),
             status_code=http_status.HTTP_200_OK,
         )
+
+    @SchemaHandler.validate("post_2fa_result.json")
+    def on_post_2fa(self, id: str, payload: dict) -> JSONResponse:
+        controller = PixTransactionController()
+        result = controller.submit_2fa(id, payload)
+        return JSONResponse(
+            content=jsonable_encoder(result),
+            status_code=http_status.HTTP_200_OK,
+        )
+
+    def on_post_fraud(self, id: str) -> JSONResponse:
+        controller = PixTransactionController()
+        result = controller.report_fraud(id)
+        return JSONResponse(
+            content=jsonable_encoder(result),
+            status_code=http_status.HTTP_200_OK,
+        )

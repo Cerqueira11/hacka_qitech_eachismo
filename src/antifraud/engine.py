@@ -10,11 +10,12 @@ from antifraud.result import STATUS_BY_ACTION, Action, RuleResult, Verdict
 from antifraud.rules import RULES
 
 
-def effective_weights(hits: List[RuleResult]) -> List[float]:
+def effective_weights(hits: List[RuleResult], discount: float = 0.0) -> List[float]:
     """Pesos que entram no noisy-OR.
 
     Sinais da mesma família medem a mesma coisa (R2 e R6: desvio de valor):
     entra só o maior peso da família, senão o mesmo desvio contaria duas vezes.
+    O desconto de R7 incide exclusivamente sobre a família de desvio de valor (A3).
     """
     independent: List[float] = []
     strongest: Dict[str, float] = {}
@@ -25,14 +26,20 @@ def effective_weights(hits: List[RuleResult]) -> List[float]:
             independent.append(hit.weight)
         else:
             strongest[hit.family] = max(strongest.get(hit.family, 0.0), hit.weight)
+
+    if config.AMOUNT_DEVIATION_FAMILY in strongest and discount > 0:
+        strongest[config.AMOUNT_DEVIATION_FAMILY] = max(
+            0.0, strongest[config.AMOUNT_DEVIATION_FAMILY] * (1 - discount)
+        )
+
     return independent + list(strongest.values())
 
 
 def combine_rules(hits: List[RuleResult]) -> float:
-    """noisy-OR dos pesos, com o desconto de R7 (teto MAX_DISCOUNT)."""
-    not_fraud = math.prod(1 - weight for weight in effective_weights(hits))
+    """noisy-OR dos pesos, com o desconto de R7 (teto MAX_DISCOUNT) na família de desvio de valor."""
     discount = min(config.MAX_DISCOUNT, sum(hit.discount for hit in hits))
-    return (1 - not_fraud) * (1 - discount)
+    not_fraud = math.prod(1 - weight for weight in effective_weights(hits, discount))
+    return 1 - not_fraud
 
 
 def combine_scores(rules_score: float, graph_source: float, graph_destination: float, floor: float) -> float:

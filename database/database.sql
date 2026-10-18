@@ -94,6 +94,9 @@ CREATE INDEX ix_transaction_history_destination_account_date
     ON transaction_history (destination_account_id, transaction_date DESC);
 CREATE INDEX ix_transaction_history_device_date
     ON transaction_history (source_device_id, transaction_date DESC);
+CREATE INDEX ix_transaction_history_ip_date
+    ON transaction_history (source_ip, transaction_date DESC);
+
 
 -- O porquê do veredito (explicabilidade).
 CREATE TABLE metadata (

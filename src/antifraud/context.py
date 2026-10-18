@@ -73,6 +73,8 @@ class AntifraudContext:
     source_attempts_long: int = 0    # tentativas anteriores na janela longa
     destination_sources_window: Set[UUID] = field(default_factory=set)  # inclui a origem atual
     device_sources_window: Set[UUID] = field(default_factory=set)       # inclui a origem atual
+    ip_sources_window: Set[UUID] = field(default_factory=set)           # inclui a origem atual (N1)
+    is_new_ip_for_source: bool = False                                  # True se a origem tem histórico de IP e este é inédito (N2)
     has_previous_edge_to_destination: bool = False
     has_previous_pair_edge: bool = False
 
@@ -176,12 +178,20 @@ class ContextBuilder:
 
         # R3 (C2): só nó verificado tem documento para divergir. O upsert da
         # origem já corrigiu nó não verificado; o do destino nunca altera.
-        ctx.source_owner_conflict = (
+        # Se divergir, confere se é documento vinculado (ex.: MEI/sócio CPF <-> CNPJ).
+        source_conflict = (
             source.document_verified and source.document_number != data.source_account.document_number
         )
-        ctx.destination_owner_conflict = (
+        if source_conflict and data.source_account.document_number in self.risk.linked_documents(source.document_number):
+            source_conflict = False
+        ctx.source_owner_conflict = source_conflict
+
+        destination_conflict = (
             destination.document_verified and destination.document_number != data.destination_account.document_number
         )
+        if destination_conflict and data.destination_account.document_number in self.risk.linked_documents(destination.document_number):
+            destination_conflict = False
+        ctx.destination_owner_conflict = destination_conflict
 
         ctx.device_api_available = external.device_registered is not None
         ctx.device_registered = bool(external.device_registered)
@@ -221,6 +231,13 @@ class ContextBuilder:
         ctx.device_sources_window = self.risk.distinct_sources_on_device(
             data.device_id, as_of - config.DEVICE_SHARED_WINDOW, as_of
         ) | {source.id_account}
+        ctx.ip_sources_window = self.risk.distinct_sources_on_ip(
+            data.ip, as_of - config.IP_SHARED_WINDOW, as_of
+        ) | {source.id_account}
+        source_ips_count = self.risk.count_source_ips(source.id_account, as_of)
+        ctx.is_new_ip_for_source = source_ips_count > 0 and not self.risk.has_seen_source_ip(
+            source.id_account, data.ip, as_of
+        )
         ctx.has_previous_edge_to_destination = self.risk.has_edge(
             source.id_account, destination.id_account, either_direction=False
         )
