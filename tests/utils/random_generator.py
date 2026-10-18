@@ -74,3 +74,25 @@ class RandomGenerator:
         )
 
         return cnpj_number
+
+    @staticmethod
+    def generate_alphanumeric_cnpj():
+        """Um CNPJ alfanumérico (IN RFB 2.229/2024) válido, com a máscara 00.000.000/0000-00.
+
+        As 12 primeiras posições aceitam letras; os 2 verificadores continuam
+        dígitos. Mesma conta do CNPJ numérico, com o valor de cada caractere
+        sendo o código ASCII menos 48 ('0' vale 0, 'A' vale 17). Escrita aqui
+        de novo, e não importada: o teste não enxerga o `src/`.
+        """
+        alphabet = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        body = "".join(random.choice(alphabet) for _ in range(12))
+        while body.isdigit():
+            body = "".join(random.choice(alphabet) for _ in range(12))
+
+        first_weights = [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]
+        for weights in (first_weights, [6] + first_weights):
+            total = sum((ord(character) - 48) * weight for character, weight in zip(body, weights))
+            remainder = total % 11
+            body += "0" if remainder < 2 else str(11 - remainder)
+
+        return f"{body[0:2]}.{body[2:5]}.{body[5:8]}/{body[8:12]}-{body[12:14]}"

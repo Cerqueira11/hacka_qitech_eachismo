@@ -1,4 +1,5 @@
-from tests.utils import PayloadGenerator, RequestGenerator
+from tests.utils import PayloadGenerator, RandomGenerator, RequestGenerator
+from tests.utils.dict_api_mock import DictApiMock
 from tests.utils.requisition import ClientRequisition
 
 STATUSES = ("approved", "rejected", "two_factor_required")
@@ -121,6 +122,7 @@ class TestPixTransactionValidation:
         assert status == 422
         assert response["code"] == "QIT001008"
 
+
     def test_transaction_date_without_timezone(self):
         payload = PayloadGenerator.create_pix_transaction_payload(transaction_date="2026-10-17T22:15:00")
 
@@ -154,3 +156,94 @@ class TestPixTransactionValidation:
         status, _ = RequestGenerator.GET_pix_transaction(payload["id"])
 
         assert status == 404
+
+
+def wrong_last_digit(document_number: str) -> str:
+    """O mesmo documento com o último dígito verificador trocado."""
+    return document_number[:-1] + str((int(document_number[-1]) + 1) % 10)
+
+
+class TestPixDocumentNumber:
+    """CPF ou CNPJ (numérico ou alfanumérico), com ou sem máscara. O resto é 422."""
+
+    def assert_invalid_document(self, **document):
+        payload = PayloadGenerator.create_pix_transaction_payload(**document)
+
+        status, response = RequestGenerator.POST_pix_transaction(payload)
+
+        assert status == 422, response
+        assert response["code"] == "QIT001008"
+
+    def test_accepts_cpf_without_mask(self):
+        cpf = RandomGenerator.generate_cpf().replace(".", "").replace("-", "")
+        payload = PayloadGenerator.create_pix_transaction_payload(destination_document_number=cpf)
+
+        status, response = RequestGenerator.POST_pix_transaction(payload)
+
+        assert status == 201, response
+
+    def test_accepts_numeric_cnpj_with_and_without_mask(self):
+        masked = RandomGenerator.generate_cnpj()
+        unmasked = masked.replace(".", "").replace("/", "").replace("-", "")
+        for destination in (masked, unmasked):
+            payload = PayloadGenerator.create_pix_transaction_payload(destination_document_number=destination)
+
+            status, response = RequestGenerator.POST_pix_transaction(payload)
+
+            assert status == 201, response
+        # Os dois formatos chegam ao DICT como o mesmo documento, sem máscara.
+        assert DictApiMock.calls(masked) == 2
+
+    def test_accepts_cnpj_as_source(self):
+        payload = PayloadGenerator.create_pix_transaction_payload(
+            source_document_number=RandomGenerator.generate_cnpj()
+        )
+
+        status, response = RequestGenerator.POST_pix_transaction(payload)
+
+        assert status == 201, response
+
+    def test_accepts_alphanumeric_cnpj_in_lowercase(self):
+        cnpj = RandomGenerator.generate_alphanumeric_cnpj()
+        payload = PayloadGenerator.create_pix_transaction_payload(destination_document_number=cnpj.lower())
+
+        status, response = RequestGenerator.POST_pix_transaction(payload)
+
+        assert status == 201, response
+        # A API põe as letras em maiúsculo antes de consultar o DICT.
+        assert DictApiMock.calls(cnpj) == 1
+
+    def test_invalid_cnpj_check_digit(self):
+        self.assert_invalid_document(destination_document_number=wrong_last_digit(RandomGenerator.generate_cnpj()))
+
+    def test_invalid_alphanumeric_cnpj_check_digit(self):
+        self.assert_invalid_document(
+            destination_document_number=wrong_last_digit(RandomGenerator.generate_alphanumeric_cnpj())
+        )
+
+    def test_invalid_cpf_check_digit_on_destination(self):
+        self.assert_invalid_document(destination_document_number=wrong_last_digit(RandomGenerator.generate_cpf()))
+
+    def test_cpf_with_all_digits_equal(self):
+        # Passa na conta dos verificadores, mas a Receita não emite.
+        self.assert_invalid_document(source_document_number="111.111.111-11")
+
+    def test_cnpj_with_all_digits_equal(self):
+        self.assert_invalid_document(destination_document_number="00.000.000/0000-00")
+
+    def test_cpf_with_letters(self):
+        # 11 caracteres: tamanho de CPF, mas CPF só tem dígitos.
+        self.assert_invalid_document(source_document_number="1234567890A")
+
+    def test_neither_cpf_nor_cnpj_length(self):
+        # 12 dígitos: passa no schema, mas não é CPF (11) nem CNPJ (14).
+        self.assert_invalid_document(destination_document_number="123456789012")
+
+    def test_document_with_forbidden_characters_is_400(self):
+        payload = PayloadGenerator.create_pix_transaction_payload(destination_document_number="123 456 789 09")
+
+        status, response = RequestGenerator.POST_pix_transaction(payload)
+
+        # Espaço não está no pattern do schema: barra antes da validação de CPF.
+        assert status == 400
+        assert response["code"] == "QIT000001"
