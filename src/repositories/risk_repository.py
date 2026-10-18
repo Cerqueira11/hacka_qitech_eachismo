@@ -35,11 +35,15 @@ def latest_status():
 def not_rejected():
     # Pix rejeitado não movimentou dinheiro: não entra em soma, média nem padrão.
     # 2FA pendente que ultrapassou o TTL (15 minutos) expirou e também não entra em somas.
+    # O TTL é medido pelo relógio do banco (created_at x now()), não pelo
+    # transaction_date do payload: um Pix com data de negócio de mais de 15
+    # minutos atrás (reprocessamento, carga histórica, relógio do cliente)
+    # nasceria com o 2FA já vencido e sumiria da R1, da R9 e do grafo.
     return and_(
         latest_status() != "rejected",
         or_(
             latest_status() != "two_factor_required",
-            TransactionHistory.transaction_date >= func.now() - cast(f"{config.TWO_FACTOR_TTL_MINUTES} minutes", Interval),
+            TransactionHistory.created_at >= func.now() - cast(f"{config.TWO_FACTOR_TTL_MINUTES} minutes", Interval),
         ),
     )
 
