@@ -18,6 +18,7 @@ load_dotenv(TEST_ROOT.parent / ".env")
 DEFAULT_LOG_PATH = TEST_ROOT / "logs" / "dict_random_scenarios.log"
 DEFAULT_DICT_MOCK_PATH = TEST_ROOT / "logs" / "dict_random_generated_mock.json"
 DEFAULT_SCENARIO_COUNT = 100
+DEFAULT_CPF_COUNT = 50
 COUNTER_BY_FRAUD_TYPE = {
     "APPLICATION_FRAUD": "ApplicationFrauds",
     "MULE_ACCOUNT": "MuleAccounts",
@@ -56,20 +57,18 @@ def generate_cpf(rng: random.Random) -> str:
     return "".join(str(digit) for digit in digits)
 
 
-def generate_cnpj(rng: random.Random) -> str:
-    digits = [rng.randrange(10) for _ in range(8)] + [0, 0, 0, 1]
-    for weights in ([5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2], [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]):
-        remainder = sum(
-            digit * weight for digit, weight in zip(digits, weights)
-        ) % 11
-        digits.append(0 if remainder < 2 else 11 - remainder)
-    return "".join(str(digit) for digit in digits)
+def generate_cpf_pool(rng: random.Random, cpf_count: int) -> list:
+    if cpf_count < 1:
+        raise ValueError("A quantidade de CPFs deve ser maior que zero")
 
-
-def generate_document(rng: random.Random, index: int) -> str:
-    if index % 4 == 3:
-        return generate_cnpj(rng)
-    return generate_cpf(rng)
+    documents = []
+    seen = set()
+    while len(documents) < cpf_count:
+        document = generate_cpf(rng)
+        if document not in seen:
+            seen.add(document)
+            documents.append(document)
+    return documents
 
 
 def random_timestamp(rng: random.Random, start: datetime, end: datetime) -> datetime:
@@ -96,12 +95,15 @@ def random_location(rng: random.Random):
     return {"latitude": round(latitude, 6), "longitude": round(longitude, 6)}
 
 
-def build_random_scenarios(simulator: DictResponseSimulator, rng: random.Random, run_id: str, count: int) -> list:
+def build_random_scenarios(
+    simulator: DictResponseSimulator,
+    rng: random.Random,
+    run_id: str,
+    count: int,
+    documents: list,
+) -> list:
     if count < 1:
         raise ValueError("A quantidade de cenários deve ser maior que zero")
-
-    document_count = max(30, min(count, 150))
-    documents = [generate_document(rng, index) for index in range(document_count)]
     dict_queries = {
         document: {"document_number": document, "response": simulator.query(document)}
         for document in documents
@@ -179,16 +181,19 @@ def build_random_scenarios(simulator: DictResponseSimulator, rng: random.Random,
     return scenarios
 
 
-def run_scenarios(seed=None, count=DEFAULT_SCENARIO_COUNT) -> dict:
+def run_scenarios(seed=None, count=DEFAULT_SCENARIO_COUNT, cpf_count=DEFAULT_CPF_COUNT) -> dict:
     rng = random.Random(seed)
     simulator = DictResponseSimulator(rng=rng)
     run_id = uuid.uuid4().hex[:8]
-    scenarios = build_random_scenarios(simulator, rng, run_id, count)
+    cpf_pool = generate_cpf_pool(rng, cpf_count)
+    scenarios = build_random_scenarios(simulator, rng, run_id, count, cpf_pool)
 
     return {
         "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "run_id": run_id,
         "seed": seed,
+        "cpf_count": cpf_count,
+        "cpf_pool": cpf_pool,
         "scenario_count": len(scenarios),
         "scenarios": scenarios,
     }
@@ -226,6 +231,12 @@ def main() -> None:
         help=f"Quantidade de transações aleatórias para enviar (padrão: {DEFAULT_SCENARIO_COUNT})",
     )
     parser.add_argument(
+        "--cpf-count",
+        type=int,
+        default=DEFAULT_CPF_COUNT,
+        help=f"Quantidade de CPFs únicos para reutilizar (padrão: {DEFAULT_CPF_COUNT})",
+    )
+    parser.add_argument(
         "--output",
         type=Path,
         default=DEFAULT_LOG_PATH,
@@ -244,7 +255,11 @@ def main() -> None:
     )
     arguments = parser.parse_args()
 
-    report = run_scenarios(seed=arguments.seed, count=arguments.count)
+    report = run_scenarios(
+        seed=arguments.seed,
+        count=arguments.count,
+        cpf_count=arguments.cpf_count,
+    )
     arguments.dict_mock_output.parent.mkdir(parents=True, exist_ok=True)
     with arguments.dict_mock_output.open("w", encoding="utf-8") as fixture:
         json.dump(build_application_dict_mock(report), fixture, indent=2, ensure_ascii=False)

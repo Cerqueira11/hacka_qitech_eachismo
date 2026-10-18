@@ -207,8 +207,12 @@ def test_runner_generates_random_production_payloads_for_existing_api_schema():
     schema = json.loads(PIX_TRANSACTION_SCHEMA.read_text(encoding="utf-8"))
     scenarios = report["scenarios"]
     payloads = [scenario["post_payload"] for scenario in scenarios]
+    cpf_pool = set(report["cpf_pool"])
 
     assert report["scenario_count"] == 100
+    assert report["cpf_count"] == 50
+    assert len(cpf_pool) == report["cpf_count"]
+    assert all(len(document) == 11 and document.isdigit() for document in cpf_pool)
     assert len({payload["id"] for payload in payloads}) == 100
     assert len({
         payload["source_account"]["account_number"]
@@ -236,6 +240,8 @@ def test_runner_generates_random_production_payloads_for_existing_api_schema():
         payload = scenario["post_payload"]
         validate(instance=payload, schema=schema)
         timestamps.append(payload["transaction_date"])
+        assert payload["source_account"]["owner"]["document_number"] in cpf_pool
+        assert payload["destination_account"]["owner"]["document_number"] in cpf_pool
         assert scenario["dict_queries"]["source_account"]["document_number"] == (
             payload["source_account"]["owner"]["document_number"]
         )
@@ -246,9 +252,11 @@ def test_runner_generates_random_production_payloads_for_existing_api_schema():
 
 
 def test_random_payload_population_is_reproducible_by_seed():
-    first = run_scenarios(seed=42, count=10)
-    second = run_scenarios(seed=42, count=10)
+    first = run_scenarios(seed=42, count=10, cpf_count=7)
+    second = run_scenarios(seed=42, count=10, cpf_count=7)
 
+    assert first["cpf_count"] == 7
+    assert first["cpf_pool"] == second["cpf_pool"]
     for first_scenario, second_scenario in zip(first["scenarios"], second["scenarios"]):
         first_payload = first_scenario["post_payload"]
         second_payload = second_scenario["post_payload"]
@@ -259,6 +267,11 @@ def test_random_payload_population_is_reproducible_by_seed():
 def test_runner_rejects_nonpositive_scenario_count():
     with pytest.raises(ValueError, match="maior que zero"):
         run_scenarios(seed=42, count=0)
+
+
+def test_runner_rejects_nonpositive_cpf_count():
+    with pytest.raises(ValueError, match="quantidade de CPFs deve ser maior que zero"):
+        run_scenarios(seed=42, count=10, cpf_count=0)
 
 
 def test_excel_export_includes_api_verdict_and_marks_missing_post_results(tmp_path):

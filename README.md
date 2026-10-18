@@ -32,7 +32,7 @@ modelo antifraude no terminal e no arquivo de log:
 # Execute esta linha uma única vez para configurar a API para usar o fixture aleatório.
 Add-Content .env "`nDICT_MOCK_FILE=/tests/logs/dict_random_generated_mock.json"
 docker compose up -d --force-recreate api
-python -m tests.run_dict_random_scenarios --count 100 --seed 42
+python -m tests.run_dict_random_scenarios --count 100 --cpf-count 50 --seed 42
 ```
 
 O relatório é salvo em `tests/logs/dict_random_scenarios.log` (sobrescrito a
@@ -42,6 +42,10 @@ cada execução); o mock gerado para a API fica em
 marcações aleatórias geradas sejam as que o POST consulta. Os IDs dos Pix recebem
 um identificador único por execução, evitando que a idempotência devolva um
 veredito antigo. O padrão é 100 transações; `--count` permite alterar a quantidade.
+O runner gera uma população fixa de 50 CPFs únicos no início; `--cpf-count`
+altera o tamanho dessa população. Cada conta de origem e destino recebe um CPF
+sorteado dessa lista, permitindo reutilizar os mesmos titulares ao longo da
+execução.
 uma planilha Excel exclusiva é criada automaticamente em `tests/logs/`, com data,
 hora e ID da execução no nome (`dict_random_results_<data>_<run_id>.xlsx`). Assim,
 as execuções anteriores não são sobrescritas. A planilha tem abas de resumo,
