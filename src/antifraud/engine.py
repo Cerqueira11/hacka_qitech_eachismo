@@ -8,6 +8,9 @@ from antifraud.context import AntifraudContext
 from antifraud.graph import GraphScorer
 from antifraud.result import STATUS_BY_ACTION, Action, RuleResult, Verdict
 from antifraud.rules import RULES
+from utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 def combine_rules(hits: List[RuleResult]) -> float:
@@ -41,10 +44,22 @@ class AntifraudEngine:
     def evaluate(self, ctx: AntifraudContext) -> Verdict:
         # Todas as regras rodam, mesmo depois de um REJECT: o metadata guarda
         # todos os motivos e a aresta recebe o peso real.
+        logger.info(
+            f"Iniciando regras para Pix {ctx.data.transaction_id} "
+            f"(valor={ctx.data.amount}, origem={ctx.source.id_account}, destino={ctx.destination.id_account})"
+        )
         hits: List[RuleResult] = []
         for rule in RULES:
-            hits.extend(rule(ctx, hits))
+            rule_name = rule.__module__.rsplit(".", 1)[-1]
+            logger.debug(f"Executando {rule_name} para Pix {ctx.data.transaction_id}")
+            rule_hits = rule(ctx, hits)
+            hits.extend(rule_hits)
+            if rule_hits:
+                logger.info(f"{rule_name}: sinais={ [hit.to_dict() for hit in rule_hits] }")
+            else:
+                logger.info(f"{rule_name}: sem sinais")
 
+        logger.info(f"Iniciando analise do grafo para Pix {ctx.data.transaction_id}")
         source = self.graph.influence(ctx.source, ctx.destination.id_account, ctx.as_of)
         destination = self.graph.influence(ctx.destination, ctx.source.id_account, ctx.as_of)
 
@@ -52,9 +67,15 @@ class AntifraudEngine:
         floor = max((hit.floor for hit in hits if hit.floor is not None), default=0.0)
         risk_score = combine_scores(rules_score, source.score, destination.score, floor)
         action = max((hit.action for hit in hits), default=Action.NONE)
+        status = decide(action, risk_score)
+        logger.info(
+            f"Resultado do motor para Pix {ctx.data.transaction_id}: status={status} "
+            f"rules_score={rules_score:.4f} graph_source={source.score:.4f} "
+            f"graph_destination={destination.score:.4f} floor={floor:.4f} risk_score={risk_score:.4f}"
+        )
 
         return Verdict(
-            status=decide(action, risk_score),
+            status=status,
             risk_score=round(risk_score, 4),
             rules_score=round(rules_score, 4),
             graph_source_score=round(source.score, 4),
