@@ -1,23 +1,39 @@
 """Cliente do DICT (Diretório de Identificadores de Contas Transacionais do BCB).
 
-Só existe a versão simulada, e ela responde uma coisa só: as estatísticas de
-fraude de um CPF/CNPJ (GET /persons/{TaxIdNumber}/statistics), usadas pela R4.
+O motor usa uma consulta só: as estatísticas de fraude de um CPF/CNPJ (R4).
+O contrato abaixo segue o PersonStatistics da API DICT (contadores d90/m12/m60
+por FraudType), em JSON:
+
+    GET /persons/{TaxIdNumber}/statistics
+      200 {
+            "TaxIdNumber": "...",
+            "FraudMarkers": {"MuleAccounts": {"d90": 1, "m12": 2, "m60": 2}, ...},
+            "InfractionReports": {"OpenReports": 1},
+            "OpenInfractions": [{"SituationType": "SCAM", "Status": "OPEN"}]
+          }
+      404 -> documento sem histórico no DICT (pessoa limpa)
+
+OpenInfractions não faz parte do PersonStatistics: representa a listagem das
+notificações de infração abertas contra o documento.
+
+Qualquer outra coisa (timeout, erro de rede, 5xx, 429, corpo que não é objeto)
+vira DictUnavailable: quem chama decide o que fazer (a R4 pede 2FA).
 
 O vínculo conta x titular NÃO vem daqui (C2): o DICT é indexado por chave Pix
-(GET /entries/{Key}) e não busca por conta, e o payload deste serviço não traz
-chave. A R3 compara o payload com o account_node verificado.
+(GET /entries/{Key}) e não busca por conta. A R3 compara o payload com o
+account_node verificado.
 
-Um cliente real (subclasse de RestConnector) entra no lugar do mock com o
-mesmo método get_person_risk.
+Localmente quem responde é o mockserver do docker compose. Se o formato real
+for diferente, só este arquivo muda.
 """
-
-import json
-import os
-import threading
 from dataclasses import dataclass
 from typing import Tuple
+from urllib.parse import quote
 
-from constants import DICT_MOCK_FILE
+import requests
+
+from connectors.rest_connector import RestConnector
+from constants import DICT_API_INTERNAL_TOKEN, DICT_API_TIMEOUT, DICT_API_URL
 
 # Contadores do PersonStatistics.FraudMarkers -> FraudType da API DICT.
 FRAUD_TYPE_BY_COUNTER = {
@@ -32,7 +48,7 @@ WEAK_FRAUD_TYPES = frozenset({"OTHER", "UNKNOWN"})
 
 
 class DictUnavailable(Exception):
-    """O DICT não respondeu (timeout, erro). Quem chama decide o que fazer."""
+    """O DICT não respondeu de forma utilizável. Quem chama decide o que fazer."""
 
 
 @dataclass(frozen=True)
@@ -65,50 +81,45 @@ class DictPersonRisk:
 CLEAN_PERSON = DictPersonRisk()
 
 
-class DictMockClient:
-    """DICT simulado a partir de src/mocks/dict_mock.json."""
-
-    _lock = threading.Lock()
-    _cache = {}  # caminho do arquivo -> (mtime, conteúdo)
-
-    def __init__(self, fixture_path: str = DICT_MOCK_FILE) -> None:
-        self.fixture_path = fixture_path
+class DictApiClient(RestConnector):
+    def __init__(
+        self,
+        base_url: str = DICT_API_URL,
+        timeout: float = DICT_API_TIMEOUT,
+        internal_token: str = DICT_API_INTERNAL_TOKEN,
+    ) -> None:
+        super().__init__(__name__, base_url, timeout, internal_token)
 
     def get_person_risk(self, document_number: str) -> DictPersonRisk:
-        self._raise_if_unavailable(document_number)
-        person = self._data().get("persons", {}).get(document_number)
-        if person is None:
-            return CLEAN_PERSON
-
-        fraud_types = set()
-        for counter, values in person.get("FraudMarkers", {}).items():
-            fraud_type = FRAUD_TYPE_BY_COUNTER.get(counter)
-            # m12 já inclui os últimos 90 dias (d90).
-            if fraud_type and (values or {}).get("m12", 0) > 0:
-                fraud_types.add(fraud_type)
-
-        infractions = tuple(item["SituationType"] for item in person.get("OpenInfractions", []))
-        open_reports = person.get("InfractionReports", {}).get("OpenReports", 0)
-        if open_reports > 0 and not infractions:
-            infractions = ("OTHER",)
-
-        return DictPersonRisk(fraud_types=frozenset(fraud_types), open_infractions=infractions)
-
-    def _raise_if_unavailable(self, document_number: str) -> None:
-        if document_number in self._data().get("unavailable_documents", []):
-            raise DictUnavailable(f"DICT simulado indisponível para {document_number}")
-
-    def _data(self) -> dict:
-        # Relê o arquivo só quando ele muda: editar o mock vale sem reiniciar a API.
+        if not self.base_url:
+            raise DictUnavailable("DICT_API_URL não configurada")
+        endpoint = f"/persons/{quote(document_number, safe='')}/statistics"
         try:
-            mtime = os.path.getmtime(self.fixture_path)
-        except OSError as error:
-            raise DictUnavailable(f"Arquivo do DICT simulado não encontrado: {self.fixture_path}") from error
+            response = self.send(endpoint, "GET")
+        except requests.RequestException as error:
+            raise DictUnavailable(f"{type(error).__name__}: {error}") from error
+        if response.status == 404:
+            return CLEAN_PERSON
+        if response.status == 200 and isinstance(response.json, dict):
+            return _person_risk(response.json)
+        if response.status == 200:
+            raise DictUnavailable("200 sem PersonStatistics no corpo")
+        raise DictUnavailable(f"HTTP {response.status}")
 
-        with DictMockClient._lock:
-            cached = DictMockClient._cache.get(self.fixture_path)
-            if cached is None or cached[0] != mtime:
-                with open(self.fixture_path, "r", encoding="utf-8") as fixture:
-                    cached = (mtime, json.load(fixture))
-                DictMockClient._cache[self.fixture_path] = cached
-            return cached[1]
+
+def _person_risk(statistics: dict) -> DictPersonRisk:
+    fraud_types = set()
+    for counter, values in (statistics.get("FraudMarkers") or {}).items():
+        fraud_type = FRAUD_TYPE_BY_COUNTER.get(counter)
+        # m12 já inclui os últimos 90 dias (d90).
+        if fraud_type and isinstance(values, dict) and (values.get("m12") or 0) > 0:
+            fraud_types.add(fraud_type)
+    infractions = tuple(
+        item["SituationType"]
+        for item in (statistics.get("OpenInfractions") or [])
+        if isinstance(item, dict) and item.get("SituationType")
+    )
+    open_reports = (statistics.get("InfractionReports") or {}).get("OpenReports") or 0
+    if open_reports > 0 and not infractions:
+        infractions = ("OTHER",)
+    return DictPersonRisk(fraud_types=frozenset(fraud_types), open_infractions=infractions)

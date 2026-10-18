@@ -12,8 +12,8 @@ from datetime import datetime, timedelta
 import pytest
 
 from tests.utils import ObjectGenerator, PayloadGenerator, RandomGenerator, RequestGenerator
-from tests.utils import dict_personas as persona
 from tests.utils.device_api_mock import DeviceApiMock
+from tests.utils.dict_api_mock import DictApiMock
 from tests.utils.payload_generator import DAY, NIGHT, OLD_ACCOUNT, only_digits
 
 # Origem desta instituição (INSTITUTION_ISPB padrão): usado quando uma conta
@@ -360,9 +360,14 @@ class TestR3AccountOwner:
 
 
 class TestR4PersonFraud:
+    """O DICT é o mockserver: cada teste sorteia o documento e cadastra o roteiro dele."""
+
     def test_mule_destination_is_rejected(self):
+        mule = RandomGenerator.generate_cpf()
+        DictApiMock.mule(mule)
+
         _, response = ObjectGenerator.create_pix_from_registered_device(
-            transaction_date=DAY, destination_document_number=persona.MULE,
+            transaction_date=DAY, destination_document_number=mule,
         )
 
         assert response["status"] == "rejected"
@@ -370,8 +375,11 @@ class TestR4PersonFraud:
         assert score(response) == approx(1.0)
 
     def test_scammer_source_is_rejected(self):
+        scammer = RandomGenerator.generate_cpf()
+        DictApiMock.scammer(scammer)
+
         _, response = ObjectGenerator.create_pix_from_registered_device(
-            transaction_date=DAY, source_document_number=persona.SCAMMER,
+            transaction_date=DAY, source_document_number=scammer,
         )
 
         assert response["status"] == "rejected"
@@ -379,8 +387,11 @@ class TestR4PersonFraud:
         assert score(response) == approx(1.0)
 
     def test_destination_under_analysis_small_amount_asks_2fa(self):
+        under_analysis = RandomGenerator.generate_cpf()
+        DictApiMock.under_analysis(under_analysis)
+
         _, response = ObjectGenerator.create_pix_from_registered_device(
-            amount=30000, transaction_date=DAY, destination_document_number=persona.UNDER_ANALYSIS,
+            amount=30000, transaction_date=DAY, destination_document_number=under_analysis,
         )
 
         assert response["status"] == "two_factor_required"
@@ -388,8 +399,11 @@ class TestR4PersonFraud:
         assert score(response) == approx(1 - 0.6 * 0.8 * 0.9)
 
     def test_destination_under_analysis_never_blocks_by_itself(self):
+        under_analysis = RandomGenerator.generate_cpf()
+        DictApiMock.under_analysis(under_analysis)
+
         _, response = ObjectGenerator.create_pix_from_registered_device(
-            amount=150000, transaction_date=DAY, destination_document_number=persona.UNDER_ANALYSIS,
+            amount=150000, transaction_date=DAY, destination_document_number=under_analysis,
         )
 
         # Acima do limite menor o peso sobe (0.40 -> 0.70), mas continua 2FA.
@@ -397,25 +411,63 @@ class TestR4PersonFraud:
         assert score(response) == approx(1 - 0.3 * 0.8 * 0.9)
 
     def test_account_takeover_source_asks_2fa(self):
+        victim = RandomGenerator.generate_cpf()
+        DictApiMock.account_takeover(victim)
+
         _, response = ObjectGenerator.create_pix_from_registered_device(
-            transaction_date=DAY, source_document_number=persona.ACCOUNT_TAKEOVER,
+            transaction_date=DAY, source_document_number=victim,
         )
 
         assert response["status"] == "two_factor_required"
         assert "origem_conta_roubada" in reasons(response)
 
     def test_weak_signal_only_adds_weight(self):
+        weak = RandomGenerator.generate_cpf()
+        DictApiMock.weak_signal(weak)
+
         _, response = ObjectGenerator.create_pix_from_registered_device(
-            transaction_date=DAY, destination_document_number=persona.WEAK_SIGNAL,
+            transaction_date=DAY, destination_document_number=weak,
         )
 
         assert response["status"] == "approved"
         assert "destino_sinal_fraco" in reasons(response)
         assert score(response) == approx(1 - 0.7 * 0.8 * 0.9)
 
+    def test_document_unknown_to_dict_is_clean(self):
+        """Sem expectativa o mockserver devolve 404: documento sem histórico, a R4 não pesa."""
+        _, response = ObjectGenerator.create_pix_from_registered_device(transaction_date=DAY)
+
+        r4_reasons = {
+            "origem_marcada", "origem_em_analise", "origem_conta_roubada", "origem_sinal_fraco",
+            "destino_marcado", "destino_em_analise", "destino_sinal_fraco", "vinculado_marcado", "dict_indisponivel",
+        }
+        assert response["status"] == "approved"
+        assert not r4_reasons & set(reasons(response))
+
+    def test_dict_is_asked_about_both_sides(self):
+        payload, _ = ObjectGenerator.create_pix_from_registered_device(transaction_date=DAY)
+
+        assert DictApiMock.calls(payload["source_account"]["owner"]["document_number"]) == 1
+        assert DictApiMock.calls(payload["destination_account"]["owner"]["document_number"]) == 1
+
     def test_dict_unavailable_asks_2fa(self):
+        destination = RandomGenerator.generate_cpf()
+        DictApiMock.unavailable(destination)
+
         _, response = ObjectGenerator.create_pix_from_registered_device(
-            transaction_date=DAY, destination_document_number=persona.DICT_UNAVAILABLE,
+            transaction_date=DAY, destination_document_number=destination,
+        )
+
+        assert response["status"] == "two_factor_required"
+        assert "dict_indisponivel" in reasons(response)
+
+    def test_dict_timeout_asks_2fa(self):
+        """Resposta depois do timeout da API conta como DICT fora do ar, mesmo sendo 200."""
+        destination = RandomGenerator.generate_cpf()
+        DictApiMock.slow(destination, delay_ms=2000)
+
+        _, response = ObjectGenerator.create_pix_from_registered_device(
+            transaction_date=DAY, destination_document_number=destination,
         )
 
         assert response["status"] == "two_factor_required"
@@ -423,8 +475,10 @@ class TestR4PersonFraud:
 
     def test_partner_of_mule_company_asks_2fa(self):
         partner = RandomGenerator.generate_cpf()
+        mule_company = RandomGenerator.generate_cnpj()
+        DictApiMock.mule(mule_company)
         status, _ = RequestGenerator.POST_person_link(
-            PayloadGenerator.create_person_link_payload(partner, persona.MULE_CNPJ, "PARTNER")
+            PayloadGenerator.create_person_link_payload(partner, mule_company, "PARTNER")
         )
         assert status == 201
 
@@ -435,6 +489,8 @@ class TestR4PersonFraud:
         assert response["status"] == "two_factor_required"
         assert "vinculado_marcado" in reasons(response)
         assert score(response) == approx(1 - 0.4 * 0.8 * 0.9)
+        # O vinculado também é consultado no DICT.
+        assert DictApiMock.calls(mule_company) == 1
 
 
 class TestR5Location:

@@ -121,7 +121,11 @@ ETAPA 1 — Contexto (tudo calculado ANTES de gravar o Pix)
     registered_device é cache interno: só o motor grava, não há rota para o usuário
     consultar ou cadastrar. O resultado vai para transaction_history.device_registered.
 
-  Do DICT (mock: src/mocks/dict_mock.json) — só estatísticas por documento (R4)
+  Do DICT (mock: mockserver no docker compose) — só estatísticas por documento (R4)
+         GET /persons/{documento}/statistics
+         200 PersonStatistics ............. marcações (m12) e infrações abertas
+         404 .............................. documento sem histórico: pessoa limpa
+         timeout (500 ms), 5xx ou 429 ..... DICT indisponível (abaixo)
     stats_origem/destino ..... PersonStatistics (contadores m12 por FraudType)
     stats_vinculados ......... mesmas estatísticas para cada documento vinculado
     infracoes_abertas ........ SituationType das notificações OPEN/ACKNOWLEDGED
@@ -368,13 +372,11 @@ Cadastros que alimentam as regras (INTERNAL-TOKEN obrigatório)
   Dispositivo não tem cadastro pelo usuário: registered_device só recebe o que a API
   externa de dispositivo confirmou (ETAPA 1).
 
-  O mock do DICT (src/mocks/dict_mock.json) traz personas prontas para demonstração:
-  laranja, golpista, em análise, conta roubada, sinal fraco e DICT indisponível.
-  Fora delas, nenhum documento tem marcação.
-
-  O mock da API de dispositivo é o mockserver (docker compose, porta 1080): sem
-  expectativa cadastrada responde 404 (não cadastrado). Os testes cadastram as
-  respostas em tests/utils/device_api_mock.py.
+  A API de dispositivo e o DICT são mockados pelo mockserver (docker compose, porta
+  1080). Sem expectativa cadastrada ele responde 404: dispositivo não cadastrado,
+  documento sem marcação no DICT. Cada teste cadastra as respostas do seu cenário
+  (laranja, golpista, em análise, conta roubada, sinal fraco, DICT fora do ar) em
+  tests/utils/device_api_mock.py e tests/utils/dict_api_mock.py.
 
 
 Fora deste fluxo (próximos passos)

@@ -17,6 +17,7 @@ class BaseExpectation:
         expected_headers: dict = None,
         request_body=None,
         request_schema_name: str = None,
+        delay_ms: int = None,
     ):
         if request_schema_name is not None:
             this_path = os.path.dirname(__file__)
@@ -44,6 +45,9 @@ class BaseExpectation:
             "body": body,
             "statusCode": status_code,
         }
+        if delay_ms is not None:
+            # O mockserver segura a resposta: serve para simular timeout.
+            expectation["httpResponse"]["delay"] = {"timeUnit": "MILLISECONDS", "value": delay_ms}
 
         return expectation
 

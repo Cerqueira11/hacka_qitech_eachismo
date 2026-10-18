@@ -7,7 +7,7 @@ from antifraud.context import ContextBuilder
 from antifraud.engine import AntifraudEngine
 from antifraud.graph import GraphScorer
 from connectors.device_client import DeviceApiClient
-from connectors.dict_client import DictMockClient
+from connectors.dict_client import DictApiClient
 from controllers.base_controller import BaseController
 from dtos import PixTransactionDTO, PixTransactionInput
 from errors import IdempotencyConflict, NotFoundPixTransaction
@@ -39,7 +39,7 @@ class PixTransactionController(BaseController):
         self.device_repository = DeviceRepository(self.context)
 
         self.context_builder = ContextBuilder(
-            RiskRepository(self.context), DictMockClient(), self.device_repository, DeviceApiClient()
+            RiskRepository(self.context), DictApiClient(), self.device_repository, DeviceApiClient()
         )
         self.graph_scorer = GraphScorer(GraphRepository(self.context))
         self.engine = AntifraudEngine(self.graph_scorer)

@@ -8,7 +8,7 @@ destino — e cobra que o risk_score reflita essa diferença.
 from datetime import datetime, timedelta
 
 from tests.utils import ObjectGenerator, PayloadGenerator, RandomGenerator
-from tests.utils import dict_personas as persona
+from tests.utils.dict_api_mock import DictApiMock
 from tests.utils.payload_generator import DAY, OLD_ACCOUNT, only_digits
 from tests.utils.request_generator import RequestGenerator
 
@@ -52,7 +52,9 @@ def pay(account: dict) -> dict:
 class TestGraphPropagation:
     def test_neighbor_under_analysis_raises_destination_risk(self):
         clean = build_neighborhood(RandomGenerator.generate_cpf())
-        exposed = build_neighborhood(persona.UNDER_ANALYSIS)
+        under_analysis = RandomGenerator.generate_cpf()
+        DictApiMock.under_analysis(under_analysis)
+        exposed = build_neighborhood(under_analysis)
         # O Pix para a conta em análise pediu 2FA, não foi rejeitado: a ligação existe.
         assert exposed["first_hop_status"] == "two_factor_required"
 
@@ -65,7 +67,9 @@ class TestGraphPropagation:
 
     def test_rejected_pix_does_not_propagate(self):
         clean = build_neighborhood(RandomGenerator.generate_cpf())
-        blocked = build_neighborhood(persona.MULE)
+        mule = RandomGenerator.generate_cpf()
+        DictApiMock.mule(mule)
+        blocked = build_neighborhood(mule)
         # O Pix para o laranja foi barrado: o dinheiro não passou por essa aresta.
         assert blocked["first_hop_status"] == "rejected"
 

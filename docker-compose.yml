@@ -37,20 +37,9 @@ services:
       INTERNAL_TOKEN: ${INTERNAL_TOKEN:-default_token}
       # ISPB desta instituicao: identifica a conta de origem no grafo antifraude.
       INSTITUTION_ISPB: ${INSTITUTION_ISPB:-00000000}
-      # A API de boletos (assunto do sabado 4). Variavel que nao esta
-      # nesta lista NAO CHEGA no container: o compose repassa o que
-      # esta escrito aqui, e mais nada. Sem estas tres linhas, mexer
-      # nos BANKSLIP_* do .env nao teria efeito nenhum aqui dentro.
-      BANKSLIP_API_URL: ${BANKSLIP_API_URL:-http://localhost:8080}
-      BANKSLIP_API_INTERNAL_TOKEN: ${BANKSLIP_API_INTERNAL_TOKEN:-default_token}
-      BANKSLIP_API_TIMEOUT: ${BANKSLIP_API_TIMEOUT:-5}
-      # Webhook da IF (job dispatch_outbox_events). Sem IF_WEBHOOK_URL, o job
-      # roda em modo mock: registra no log e considera o evento entregue.
-      # Aponte IF_WEBHOOK_URL para um mock server (ou webhook de verdade) para
-      # entregar os eventos. host.docker.internal alcança a sua maquina.
-      IF_WEBHOOK_URL: ${IF_WEBHOOK_URL:-}
-      IF_WEBHOOK_TOKEN: ${IF_WEBHOOK_TOKEN:-default_token}
-      IF_WEBHOOK_TIMEOUT: ${IF_WEBHOOK_TIMEOUT:-5}
+      # Variavel que nao esta nesta lista NAO CHEGA no container: o compose
+      # repassa o que esta escrito aqui, e mais nada.
+      #
       # API externa de dispositivo cadastrado (R1), chamada so quando o device
       # nao esta em registered_device; o 200 e gravado na tabela. Localmente
       # quem responde e o mockserver abaixo: sem expectativa cadastrada ele
@@ -58,6 +47,12 @@ services:
       DEVICE_API_URL: ${DEVICE_API_URL:-http://mockserver:1080}
       DEVICE_API_INTERNAL_TOKEN: ${DEVICE_API_INTERNAL_TOKEN:-default_token}
       DEVICE_API_TIMEOUT: ${DEVICE_API_TIMEOUT:-0.2}
+      # DICT (R4): estatisticas de fraude por documento. Localmente quem
+      # responde e o mesmo mockserver: sem expectativa ele devolve 404, que
+      # a R4 le como "documento sem historico no DICT" (pessoa limpa).
+      DICT_API_URL: ${DICT_API_URL:-http://mockserver:1080}
+      DICT_API_INTERNAL_TOKEN: ${DICT_API_INTERNAL_TOKEN:-default_token}
+      DICT_API_TIMEOUT: ${DICT_API_TIMEOUT:-0.5}
     volumes:
       # Monta o codigo pra dentro do container: salvou o arquivo,
       # a API recarrega sozinha (o --reload ali embaixo).
@@ -97,12 +92,6 @@ services:
       SERVICE_NAME: bootcamp-scheduler
       INTERNAL_TOKEN: ${INTERNAL_TOKEN:-default_token}
       INSTITUTION_ISPB: ${INSTITUTION_ISPB:-00000000}
-      BANKSLIP_API_URL: ${BANKSLIP_API_URL:-http://localhost:8080}
-      BANKSLIP_API_INTERNAL_TOKEN: ${BANKSLIP_API_INTERNAL_TOKEN:-default_token}
-      BANKSLIP_API_TIMEOUT: ${BANKSLIP_API_TIMEOUT:-5}
-      IF_WEBHOOK_URL: ${IF_WEBHOOK_URL:-}
-      IF_WEBHOOK_TOKEN: ${IF_WEBHOOK_TOKEN:-default_token}
-      IF_WEBHOOK_TIMEOUT: ${IF_WEBHOOK_TIMEOUT:-5}
     volumes:
       - ./src:/app
     command: python scheduler.py
@@ -110,11 +99,21 @@ services:
       db:
         condition: service_healthy
 
-  # Mock da API externa de dispositivo (R1). Os testes cadastram as
-  # respostas em PUT /mockserver/expectation (tests/utils/device_api_mock.py).
-  # Sem expectativa: 404 -> dispositivo nao cadastrado.
+  # Mock dos servicos de fora: API de dispositivo (R1) e DICT (R4). Os
+  # testes cadastram as respostas em PUT /mockserver/expectation
+  # (tests/utils/device_api_mock.py e tests/utils/dict_api_mock.py).
+  # Sem expectativa: 404 -> dispositivo nao cadastrado / pessoa limpa.
   mockserver:
     image: mockserver/mockserver:5.15.0
+    environment:
+      # Em INFO (o padrao), cada requisicao sem expectativa (o 404 de todo
+      # documento limpo no DICT) grava uma entrada de "didn't match" POR
+      # expectativa cadastrada. Com centenas delas o log circular enche e
+      # despeja as requisicoes recebidas que os testes conferem
+      # (DeviceApiMock.calls, DictApiMock.calls), e o mockserver passa a
+      # responder devagar o bastante para estourar o timeout da API.
+      # Em WARN ele continua guardando as requisicoes e as expectativas.
+      MOCKSERVER_LOG_LEVEL: WARN
     ports:
       - "${MOCK_PORT:-1080}:1080"
 

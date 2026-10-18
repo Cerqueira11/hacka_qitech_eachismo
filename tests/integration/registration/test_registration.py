@@ -1,5 +1,5 @@
 from tests.utils import PayloadGenerator, RandomGenerator, RequestGenerator
-from tests.utils.dict_personas import MULE_CNPJ
+from tests.utils.payload_generator import only_digits
 
 
 class TestDevice:
@@ -39,7 +39,9 @@ class TestPersonLink:
         assert created["cnpj"] == "12ABC34501DE35"
 
     def test_cnpj_in_cpf_field(self):
-        payload = PayloadGenerator.create_person_link_payload(MULE_CNPJ, RandomGenerator.generate_cnpj())
+        # Sem máscara (14 dígitos): passa no schema, mas é um CNPJ.
+        cnpj_digits = only_digits(RandomGenerator.generate_cnpj())
+        payload = PayloadGenerator.create_person_link_payload(cnpj_digits, RandomGenerator.generate_cnpj())
 
         status, response = RequestGenerator.POST_person_link(payload)
 

@@ -5,7 +5,7 @@ from uuid import UUID
 
 from antifraud import config
 from connectors.device_client import DeviceApiClient, DeviceApiUnavailable
-from connectors.dict_client import CLEAN_PERSON, DictMockClient, DictPersonRisk, DictUnavailable
+from connectors.dict_client import CLEAN_PERSON, DictApiClient, DictPersonRisk, DictUnavailable
 from dtos.pix_transaction_input import PixTransactionInput
 from models import AccountNode
 from repositories import DeviceRepository, RiskRepository
@@ -121,7 +121,7 @@ class ContextBuilder:
     def __init__(
         self,
         risk_repository: RiskRepository,
-        dict_client: DictMockClient,
+        dict_client: DictApiClient,
         device_repository: DeviceRepository,
         device_client: DeviceApiClient,
     ) -> None:

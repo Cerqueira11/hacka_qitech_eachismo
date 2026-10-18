@@ -20,9 +20,14 @@ INTERNAL_TOKEN = os.environ.get("INTERNAL_TOKEN")
 # "00000000" é só para rodar localmente; configure o ISPB real no ambiente.
 INSTITUTION_ISPB = os.environ.get("INSTITUTION_ISPB", "00000000")
 
-# Arquivo com as respostas do DICT simulado (personas de demonstração).
-# É lido a cada consulta, então editar o arquivo vale na hora, sem reiniciar.
-DICT_MOCK_FILE = os.environ.get("DICT_MOCK_FILE", os.path.join(SERVICE_ROOT, "mocks", "dict_mock.json"))
+# DICT (R4): estatísticas de fraude por documento em
+# GET /persons/{TaxIdNumber}/statistics. Sem URL configurada o DICT conta
+# como indisponível: a R4 pede 2FA, nunca aprova às cegas. No docker
+# compose ele aponta para o mockserver.
+DICT_API_URL = os.environ.get("DICT_API_URL", "").rstrip("/")
+DICT_API_INTERNAL_TOKEN = os.environ.get("DICT_API_INTERNAL_TOKEN", "default_token")
+# Timeout por consulta (segundos). Roda antes do lock, como a de dispositivo.
+DICT_API_TIMEOUT = float(os.environ.get("DICT_API_TIMEOUT", "0.5"))
 
 # API externa de dispositivo cadastrado (R1). Só é chamada quando o device
 # não está em registered_device; o 200 é gravado lá. O motor lê só o
