@@ -95,7 +95,10 @@ class TestR1UnregisteredDevice:
         assert response["status"] == "approved"
 
     def test_daily_limit_of_1000(self):
-        document, account, device = RandomGenerator.generate_cpf(), PayloadGenerator.random_account_number(), "dvc-r1"
+        document, account, device = (
+            RandomGenerator.generate_cpf(), PayloadGenerator.random_account_number(),
+            PayloadGenerator.random_device_id(),
+        )
         for hour in range(5):  # 5 x R$ 190 = R$ 950 no dia
             ObjectGenerator.create_pix_transaction(PayloadGenerator.create_pix_transaction_payload(
                 amount=19000, transaction_date=at(DAY, hours=-6 + hour), source_document_number=document,

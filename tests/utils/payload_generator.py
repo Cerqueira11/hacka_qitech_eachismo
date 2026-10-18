@@ -1,3 +1,4 @@
+import hashlib
 import random
 import uuid
 from typing import Optional
@@ -13,6 +14,18 @@ NEW_ACCOUNT = "2026-10-10T09:00:00-03:00"  # 7 dias antes de NIGHT/DAY: "destino
 
 def only_digits(document_number: str) -> str:
     return "".join(character for character in document_number if character.isdigit())
+
+
+def source_ip(document_number: str, account_number: str) -> str:
+    """IP padrão de uma origem: o mesmo para a mesma conta, outro para cada conta.
+
+    Um IP fixo para todo payload faria a N1 (mesmo IP em 3+ contas em 24h)
+    disparar em qualquer teste que rode depois de outros dois no mesmo dia.
+    """
+    # Zeros à esquerda não mudam a conta (a API normaliza): também não mudam o IP.
+    account = account_number.lstrip("0") or "0"
+    digest = hashlib.sha256(f"{only_digits(document_number)}|{account}".encode()).digest()
+    return f"10.{digest[0]}.{digest[1]}.{digest[2] or 1}"
 
 
 class PayloadGenerator:
@@ -43,7 +56,7 @@ class PayloadGenerator:
         destination_opening_date: str = NEW_ACCOUNT,
         device_id: Optional[str] = None,
         channel: str = "app",
-        ip: str = "198.51.100.23",
+        ip: Optional[str] = None,
         latitude: float = -23.56,
         longitude: float = -46.65,
         include_geolocation: bool = True,
@@ -59,6 +72,10 @@ class PayloadGenerator:
             destination_account_number = PayloadGenerator.random_account_number()
         if device_id is None:
             device_id = PayloadGenerator.random_device_id()
+        if source_document_number is None:
+            source_document_number = RandomGenerator.generate_cpf()
+        if ip is None:
+            ip = source_ip(source_document_number, source_account_number)
 
         source = {
             "device_id": device_id,

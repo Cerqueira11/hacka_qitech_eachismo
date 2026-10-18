@@ -119,10 +119,9 @@ uvicorn app:app --host 0.0.0.0 --port 8000 --app-dir src
 
 ### Executando a Suíte de Testes
 ```bash
-# Testes unitários (regras isoladas, famílias de peso, hash canônico e N1/N2)
-pytest tests/unit/ -v
-
-# Testes de integração (fluxo completo, cenários do enunciado, concorrência e grafo)
+# Todos os testes são black box: falam com a API de pé por HTTP e conferem
+# só status e corpo. Nenhum teste importa o src/ nem lê o banco.
+# (regras R1-R9, N1/N2, idempotência, concorrência e grafo)
 pytest tests/integration/ -v
 ```
 
