@@ -1,6 +1,7 @@
-# EACHISMO — Motor de Decisão Antifraude Pix em Tempo Real
+#  Motor de Decisão Antifraude Pix 
 
-**Bootcamp QI Tech 2026 · Hackathon Risk Solutions**  
+**Bootcamp QI Tech 2026 · Hackathon Risk Solutions** ·
+**Grupo 6** - **Nome: Eachismo** ·
 **Integrantes:** Gustavo Cerqueira, Nicolas, Gabriel
 
 ---
