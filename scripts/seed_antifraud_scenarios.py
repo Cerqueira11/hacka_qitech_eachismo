@@ -5,6 +5,7 @@ import json
 import logging
 import os
 import sys
+from datetime import datetime
 from pathlib import Path
 
 from jsonschema import validate
@@ -20,6 +21,21 @@ DEVICE_REGISTRATION = {
     "device_id": "demo-device-stable-001",
 }
 LOGGER = logging.getLogger("seed_antifraud")
+
+
+def transaction_date(payload: dict) -> datetime:
+    return datetime.fromisoformat(payload["transaction_date"])
+
+
+def order_payloads(payloads: list[tuple[Path, dict]], group: str) -> list[tuple[Path, dict]]:
+    ordered = sorted(payloads, key=lambda item: transaction_date(item[1]))
+    for previous, current in zip(ordered, ordered[1:]):
+        if transaction_date(current[1]) < transaction_date(previous[1]):
+            raise RuntimeError(
+                f"Ordem cronologica invalida em {group}: {current[0].name} vem depois de "
+                f"{previous[0].name}, mas tem data anterior"
+            )
+    return ordered
 
 
 def read_json(path: Path) -> dict:
@@ -57,8 +73,15 @@ def post_json(session, url: str, payload: dict, timeout: float):
 
 
 def send_transactions(session, base_url: str, timeout: float, label: str, payloads: list[tuple[Path, dict]]) -> None:
+    previous_date = None
     for index, (path, payload) in enumerate(payloads, start=1):
         transaction_id = payload["id"]
+        current_date = transaction_date(payload)
+        if previous_date is not None and current_date < previous_date:
+            raise RuntimeError(
+                f"Envio cronologico interrompido: {path.name} tem data anterior ao registro precedente"
+            )
+        previous_date = current_date
         LOGGER.info("%s %s/%s: iniciando %s (id=%s)", label, index, len(payloads), path.name, transaction_id)
         response = post_json(session, f"{base_url}/pix/transaction", payload, timeout)
         result = response.json()
@@ -155,14 +178,32 @@ def main() -> int:
     args = parser.parse_args()
 
     LOGGER.info("Carregando historico inicial de %s", HISTORY_DIR)
-    history_payloads = [(path, read_json(path)) for path in sorted(HISTORY_DIR.glob("*.json"))]
+    history_payloads = [(path, read_json(path)) for path in HISTORY_DIR.glob("*.json")]
     LOGGER.info("Carregando cenarios de teste de %s", SCENARIOS_DIR)
-    scenario_payloads = [(path, read_json(path)) for path in sorted(SCENARIOS_DIR.glob("*.json"))]
+    scenario_payloads = [(path, read_json(path)) for path in SCENARIOS_DIR.glob("*.json")]
     if not history_payloads:
         raise RuntimeError(f"Nenhum JSON historico encontrado em {HISTORY_DIR}")
     if not scenario_payloads:
         raise RuntimeError(f"Nenhum JSON encontrado em {SCENARIOS_DIR}")
+    history_payloads = order_payloads(history_payloads, "historico")
+    scenario_payloads = order_payloads(scenario_payloads, "cenarios")
+    if transaction_date(history_payloads[-1][1]) > transaction_date(scenario_payloads[0][1]):
+        raise RuntimeError(
+            "O historico termina depois do primeiro cenario; ajuste as datas para nao cadastrar "
+            "transacoes antigas apos transacoes mais recentes"
+        )
+
+    ids = [payload["id"] for _, payload in history_payloads + scenario_payloads]
+    if len(ids) != len(set(ids)):
+        raise RuntimeError("Ha IDs de transacao repetidos entre o historico e os cenarios")
     LOGGER.info("%s transacoes historicas e %s cenarios carregados", len(history_payloads), len(scenario_payloads))
+    LOGGER.info(
+        "Ordem cronologica validada: historico %s -> %s; cenarios %s -> %s",
+        transaction_date(history_payloads[0][1]).isoformat(),
+        transaction_date(history_payloads[-1][1]).isoformat(),
+        transaction_date(scenario_payloads[0][1]).isoformat(),
+        transaction_date(scenario_payloads[-1][1]).isoformat(),
+    )
 
     payloads = history_payloads + scenario_payloads
     validate_scenarios(payloads)
