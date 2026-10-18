@@ -44,15 +44,15 @@ class GraphScorer:
         d = 0: o risco aprendido da própria conta, sem dividir por degree
                (dividir esconderia justamente a conta laranja, que recebe de muitos).
                O external_risk dela não entra aqui: R4 já tratou.
-        d >= 1: λ^d · R(u) · e^(-Δt/τ) / log2(2 + degree(u))
+        d >= 1: λ^d · max(R(u), risco_da_aresta) · e^(-Δt/τ) / log2(2 + degree(u))
 
         A contraparte deste Pix fica fora: ela é analisada pela outra ponta.
         """
-        contributions: List[Tuple[float, AccountNode, int, float]] = []
+        contributions: List[Tuple[float, AccountNode, int, float, Optional[float]]] = []
 
         own = decayed_learned_risk(start, as_of)
         if own > 0:
-            contributions.append((own, start, 0, own))
+            contributions.append((own, start, 0, own, None))
 
         since = as_of - timedelta(days=config.GRAPH_WINDOW_DAYS)
         visited = {start.id_account, counterpart_id}
@@ -62,12 +62,13 @@ class GraphScorer:
             if not frontier:
                 break
 
-            reached: Dict[UUID, datetime] = {}
-            for _from_id, to_id, last_seen in self.graph.neighbor_edges(frontier, since, as_of):
+            reached: Dict[UUID, Tuple[datetime, float]] = {}
+            for _from_id, to_id, last_seen, edge_risk in self.graph.neighbor_edges(frontier, since, as_of):
                 if to_id in visited:
                     continue
-                if to_id not in reached or last_seen > reached[to_id]:
-                    reached[to_id] = last_seen
+                candidate = (last_seen, edge_risk)
+                if to_id not in reached or candidate > reached[to_id]:
+                    reached[to_id] = candidate
             if not reached:
                 break
 
@@ -79,12 +80,22 @@ class GraphScorer:
             hop_decay = config.GRAPH_HOP_DECAY**depth
             for node in nodes:
                 risk = node_risk(node, as_of)
-                if risk <= 0:
+                last_seen, edge_risk = nearest[node.id_account]
+                neighbor_risk = max(risk, edge_risk)
+                if neighbor_risk <= 0:
                     continue
-                elapsed_days = max(0.0, (as_of - nearest[node.id_account]).total_seconds() / 86400)
+                elapsed_days = max(0.0, (as_of - last_seen).total_seconds() / 86400)
                 time_decay = math.exp(-elapsed_days / config.GRAPH_TIME_DECAY_DAYS)
                 hub_penalty = math.log2(2 + (node.degree or 0))
-                contributions.append((hop_decay * risk * time_decay / hub_penalty, node, depth, risk))
+                contributions.append(
+                    (
+                        hop_decay * neighbor_risk * time_decay / hub_penalty,
+                        node,
+                        depth,
+                        risk,
+                        edge_risk,
+                    )
+                )
 
             visited.update(nearest.keys())
             # Não expande por hubs (varejista, folha de pagamento ligam todo mundo).
@@ -100,8 +111,9 @@ class GraphScorer:
                 "distance": distance,
                 "risk": round(risk, 4),
                 "contribution": round(contribution, 4),
+                "edge_risk": round(edge_risk, 4) if edge_risk is not None else None,
             }
-            for contribution, node, distance, risk in contributions[: config.GRAPH_EVIDENCE_SIZE]
+            for contribution, node, distance, risk, edge_risk in contributions[: config.GRAPH_EVIDENCE_SIZE]
         ]
         return GraphInfluence(score=min(1.0, contributions[0][0]), evidence=evidence)
 

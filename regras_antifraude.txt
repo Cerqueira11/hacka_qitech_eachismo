@@ -291,13 +291,15 @@ ETAPA 3 — Grafo (nó = conta, aresta = Pix com risk_score)
   Contribuições
     d = 0 (a própria conta): risk_score decaído, sem dividir por degree.
           O external_risk da própria conta não entra aqui: R4 já tratou.
-    d >= 1 (vizinho u):  λ^d · R(u) · e^(-Δt/τ) / log2(2 + degree(u))
+    d >= 1 (vizinho u):  λ^d · max(R(u), peso_da_aresta) · e^(-Δt/τ) / log2(2 + degree(u))
           Δt = tempo desde a aresta mais recente que levou até u
+          peso_da_aresta = risk_score da transação não rejeitada mais recente entre o par
 
   Saída
     I_origem  = max das contribuições a partir da origem
     I_destino = max das contribuições a partir do destino
-    graph_evidence = as 3 contas que mais contribuíram (conta, distância, risco)
+    graph_evidence = as 3 contas que mais contribuíram (conta, distância,
+                     risco do nó, risco da aresta e contribuição)
 
   Usa max e não soma: 100 vizinhos levemente arriscados não viram "fraude", e a
   explicação aponta uma conta específica.

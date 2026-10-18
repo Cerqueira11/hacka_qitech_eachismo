@@ -42,46 +42,65 @@ class GraphRepository:
 
     def neighbor_edges(
         self, frontier: Iterable[UUID], since: datetime, as_of: datetime
-    ) -> List[Tuple[UUID, UUID, datetime]]:
-        """Arestas que saem ou chegam nos nós da fronteira, como (de, para, última_data).
+    ) -> List[Tuple[UUID, UUID, datetime, float]]:
+        """Arestas que saem ou chegam nos nós da fronteira.
 
         O grafo é percorrido nos dois sentidos. Aresta rejeitada não entra:
-        o dinheiro não passou por ela.
+        o dinheiro não passou por ela. Para cada par, retorna a data e o risco
+        da transação elegível mais recente.
         """
         frontier = list(frontier)
         if not frontier:
             return []
 
-        outgoing = (
-            select(
-                TransactionHistory.source_account_id.label("from_id"),
-                TransactionHistory.destination_account_id.label("to_id"),
-                func.max(TransactionHistory.transaction_date).label("last_seen"),
+        def latest_edges(from_id, to_id):
+            ranked = (
+                select(
+                    from_id.label("from_id"),
+                    to_id.label("to_id"),
+                    TransactionHistory.transaction_date.label("last_seen"),
+                    TransactionHistory.risk_score.label("edge_risk"),
+                    func.row_number()
+                    .over(
+                        partition_by=(
+                            TransactionHistory.source_account_id,
+                            TransactionHistory.destination_account_id,
+                        ),
+                        order_by=(
+                            TransactionHistory.transaction_date.desc(),
+                            TransactionHistory.key_pix.desc(),
+                        ),
+                    )
+                    .label("edge_rank"),
+                )
+                .where(
+                    from_id.in_(frontier),
+                    TransactionHistory.transaction_date >= since,
+                    TransactionHistory.transaction_date <= as_of,
+                    not_rejected(),
+                )
+                .subquery()
             )
-            .where(
-                TransactionHistory.source_account_id.in_(frontier),
-                TransactionHistory.transaction_date >= since,
-                TransactionHistory.transaction_date <= as_of,
-                not_rejected(),
-            )
-            .group_by(TransactionHistory.source_account_id, TransactionHistory.destination_account_id)
+            return select(
+                ranked.c.from_id,
+                ranked.c.to_id,
+                ranked.c.last_seen,
+                ranked.c.edge_risk,
+            ).where(ranked.c.edge_rank == 1)
+
+        outgoing = latest_edges(
+            TransactionHistory.source_account_id,
+            TransactionHistory.destination_account_id,
         )
-        incoming = (
-            select(
-                TransactionHistory.destination_account_id.label("from_id"),
-                TransactionHistory.source_account_id.label("to_id"),
-                func.max(TransactionHistory.transaction_date).label("last_seen"),
-            )
-            .where(
-                TransactionHistory.destination_account_id.in_(frontier),
-                TransactionHistory.transaction_date >= since,
-                TransactionHistory.transaction_date <= as_of,
-                not_rejected(),
-            )
-            .group_by(TransactionHistory.destination_account_id, TransactionHistory.source_account_id)
+        incoming = latest_edges(
+            TransactionHistory.destination_account_id,
+            TransactionHistory.source_account_id,
         )
         rows = self.session.execute(union_all(outgoing, incoming)).all()
-        return [(row.from_id, row.to_id, row.last_seen) for row in rows]
+        return [
+            (row.from_id, row.to_id, row.last_seen, float(row.edge_risk or 0))
+            for row in rows
+        ]
 
     def get_nodes(self, ids: Iterable[UUID]) -> List[AccountNode]:
         ids = list(ids)

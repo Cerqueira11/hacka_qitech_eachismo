@@ -1,9 +1,4 @@
-"""O grafo visto de fora: o risco de uma conta contamina quem transaciona com ela.
-
-O teste não olha o banco. Ele compara dois Pix idênticos (mesmo valor, mesma
-hora, mesmos sinais de regra) cuja única diferença é a vizinhança da conta de
-destino — e cobra que o risk_score reflita essa diferença.
-"""
+"""Testes black-box da propagação de risco no grafo através da API."""
 
 from datetime import datetime, timedelta
 
@@ -50,6 +45,34 @@ def pay(account: dict) -> dict:
 
 
 class TestGraphPropagation:
+    def test_neighbor_edge_risk_raises_destination_score(self):
+        account_a = PayloadGenerator.random_account_number()
+        owner_a = RandomGenerator.generate_cpf()
+        device_a = PayloadGenerator.random_device_id()
+        ObjectGenerator.register_device(only_digits(owner_a), device_a)
+
+        payload = PayloadGenerator.create_pix_transaction_payload(
+            amount=5000,
+            transaction_date=TWO_DAYS_AGO,
+            source_document_number=owner_a,
+            source_account_number=account_a,
+            source_opening_date=OLD_ACCOUNT,
+            destination_document_number=RandomGenerator.generate_cpf(),
+            destination_opening_date=OLD_ACCOUNT,
+            device_id=device_a,
+            include_geolocation=False,
+        )
+        status, edge_response = RequestGenerator.POST_pix_transaction(payload)
+        assert status == 201, edge_response
+        assert edge_response["status"] == "approved"
+        assert abs(score(edge_response) - 0.19) < 0.01
+
+        downstream = pay({"account": account_a, "owner": owner_a})
+
+        # O score da aresta (0.19) supera o risco aprendido dos seus nós,
+        # então deve elevar o score do Pix seguinte que atravessa essa ligação.
+        assert score(downstream) > 0.13
+
     def test_neighbor_under_analysis_raises_destination_risk(self):
         clean = build_neighborhood(RandomGenerator.generate_cpf())
         under_analysis = RandomGenerator.generate_cpf()
