@@ -27,7 +27,7 @@ TRANSACTION_ID_CONSTRAINT = "uq_transaction_history_transaction_id"
 
 
 class PixTransactionController(BaseController):
-    """Orquestra a análise antifraude de um Pix (o caminho de regras_antifraude.txt)."""
+    """Orquestra a análise antifraude de um Pix (o caminho descrito no README.md)."""
 
     def __init__(self) -> None:
         super().__init__(__name__)

@@ -1,4 +1,4 @@
-"""Cenários das regras antifraude (regras_antifraude.txt), de fora para dentro.
+"""Cenários das regras antifraude (README.md, seção 2), de fora para dentro.
 
 Cada teste monta o próprio pedaço do grafo com contas, documentos e
 dispositivos aleatórios: os testes podem rodar em qualquer ordem e quantas

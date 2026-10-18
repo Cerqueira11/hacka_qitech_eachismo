@@ -1,1 +1,1 @@
-"""Motor antifraude Pix. O caminho completo está descrito em regras_antifraude.txt."""
+"""Motor antifraude Pix. O caminho completo está descrito no README.md."""

@@ -1,7 +1,7 @@
 """Parâmetros do motor antifraude.
 
-Tudo o que está marcado "(a calibrar)" em regras_antifraude.txt mora aqui:
-ponto de partida, não decisão final. Valores em centavos.
+Todos os limiares e pesos das regras (README.md, seção 2) moram aqui:
+ponto de partida a calibrar, não decisão final. Valores em centavos.
 """
 
 from datetime import timedelta, timezone

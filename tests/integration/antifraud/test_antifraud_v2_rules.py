@@ -3,7 +3,7 @@
 Substitui os antigos testes de unidade (tests/unit/), que importavam o src/.
 Aqui tudo passa pela API: cada teste monta o próprio pedaço do grafo com
 POST /pix/transaction e confere só o que volta (status, reasons, risk_score).
-Os pesos citados nos comentários são os de regras_antifraude.txt; o teste não
+Os pesos citados nos comentários são os do README.md (seção 2); o teste não
 lê o config.py.
 """
 import uuid

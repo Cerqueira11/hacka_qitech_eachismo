@@ -169,7 +169,7 @@ Resposta:
 
 ### Pré-requisitos
 * Docker & Docker Compose
-* Python 3.11+ (só para rodar os testes na sua máquina)
+* Python 3.11+ com `venv` (só para rodar os testes na sua máquina; no Ubuntu/Debian: `sudo apt install python3-venv`)
 
 ### Subindo o ambiente
 ```bash
@@ -187,6 +187,9 @@ docker compose ps
 
 ### Executando a suíte de testes
 ```bash
+# venv: Ubuntu/Debian recentes recusam pip install fora de um ambiente virtual
+python3 -m venv .venv
+source .venv/bin/activate
 pip install -r requirements-dev.txt
 
 # Na raiz do repositório: o pytest descobre todos os test_*.py de todas as pastas em tests/
@@ -203,6 +206,6 @@ Os testes são black box: falam com a API de pé por HTTP (e cadastram respostas
 | `tests/integration/registration/` | `POST /person_link` e ausência de rota de cadastro de dispositivo |
 | `tests/utils/` | Geradores de payload e mocks da Device API e do DICT (não são testes) |
 
-Os testes leem `SERVER_LOCALHOST`, `API_PORT`, `MOCK_HOST` e `MOCK_PORT` do `.env` (se existir). No Windows, se aparecer erro de conexão com `0.0.0.0`, defina `SERVER_LOCALHOST=localhost` no `.env`.
+Sem `.env`, os testes falam com a API em `0.0.0.0:3000` e com o MockServer em `0.0.0.0:1080`. Se você mudou alguma porta no `.env`, os testes leem `API_PORT` e `MOCK_PORT` de lá.
 
 

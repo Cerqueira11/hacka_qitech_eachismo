@@ -1,4 +1,4 @@
-"""Motor antifraude: regras → grafo → score → decisão (ETAPAS 2 a 5 de regras_antifraude.txt)."""
+"""Motor antifraude: regras → grafo → score → decisão (ETAPAS 2 a 5 do README.md)."""
 
 import math
 from typing import Dict, List
