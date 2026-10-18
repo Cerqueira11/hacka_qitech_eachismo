@@ -10,7 +10,8 @@ Os cenários independentes para testes ficam em `tests/fixtures/`:
   marcações registradas/canceladas e paginação. O simulador em
   `tests/utils/dict_response_simulator.py` aceita documentos com ou sem máscara;
   documentos sem resposta fixa recebem uma resposta aleatória que usa o documento
-  consultado nos marcadores.
+  consultado nos marcadores: aproximadamente 95% não retornam marcações e 5%
+  retornam ao menos uma marcação registrada.
 - `api_post/pix_transaction/` contém corpos JSON de exemplo para POST
   `/pix/transaction`, incluindo três requisições (`aleatoria_documentos_*.json`)
   com cinco CPFs/CNPJs não presentes em nenhum mock estático. O teste de fixtures

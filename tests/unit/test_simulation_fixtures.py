@@ -127,6 +127,30 @@ def test_dict_simulator_rejects_invalid_queries():
         simulator.query("documento-invalido")
 
 
+def test_random_dict_response_is_clean_95_percent_and_marked_5_percent():
+    simulator = DictResponseSimulator(rng=random.Random(20261018))
+    responses = [
+        simulator.query(f"{index:011d}")["ListFraudMarkersResponse"]
+        for index in range(1, 2001)
+    ]
+
+    marked = sum(
+        any(
+            marker["Status"] == "REGISTERED"
+            for marker in response["FraudMarkers"]["FraudMarker"]
+        )
+        for response in responses
+    )
+    marked_rate = marked / len(responses)
+
+    assert 0.03 <= marked_rate <= 0.07
+    assert all(
+        response["Total"] == 0 and response["FraudMarkers"]["FraudMarker"] == []
+        for response in responses
+        if not response["FraudMarkers"]["FraudMarker"]
+    )
+
+
 def test_post_pix_transaction_fixtures_have_matching_dict_responses():
     simulator = DictResponseSimulator()
 

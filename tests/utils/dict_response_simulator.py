@@ -17,6 +17,7 @@ FRAUD_TYPES = (
     "UNKNOWN",
 )
 STATUSES = ("REGISTERED", "CANCELLED")
+FRAUD_RESPONSE_PROBABILITY = 0.05
 
 
 class DictResponseSimulator:
@@ -43,16 +44,17 @@ class DictResponseSimulator:
         return deepcopy(self._generated_responses[digits])
 
     def _generate_response(self, document_number: str) -> dict:
-        total = self._rng.randint(0, 5)
+        has_fraud_marker = self._rng.random() < FRAUD_RESPONSE_PROBABILITY
+        total = self._rng.randint(1, 5) if has_fraud_marker else 0
         now = datetime.now(timezone.utc).isoformat(timespec="milliseconds").replace("+00:00", "Z")
         markers = []
         if total:
             returned_count = min(total, self._rng.randint(1, 3))
-            for _ in range(returned_count):
+            for index in range(returned_count):
                 marker_id = str(uuid.uuid4())
                 markers.append({
                     "Id": marker_id,
-                    "Status": self._rng.choice(STATUSES),
+                    "Status": "REGISTERED" if index == 0 else self._rng.choice(STATUSES),
                     "TaxIdNumber": document_number,
                     "FraudType": self._rng.choice(FRAUD_TYPES),
                     "Key": f"{uuid.uuid4().hex[:12]}@example.test",
