@@ -41,6 +41,16 @@ cada execução); o mock gerado para a API fica em
 marcações aleatórias geradas sejam as que o POST consulta. Os IDs dos Pix recebem
 um identificador único por execução, evitando que a idempotência devolva um
 veredito antigo. O padrão é 100 transações; `--count` permite alterar a quantidade.
+uma planilha Excel exclusiva é criada automaticamente em `tests/logs/`, com data,
+hora e ID da execução no nome (`dict_random_results_<data>_<run_id>.xlsx`). Assim,
+as execuções anteriores não são sobrescritas. A planilha tem abas de resumo,
+transações/vereditos e consultas/marcações DICT. Para exportar um log existente
+sem enviar novos POSTs:
+
+```powershell
+python -m tests.export_results_excel
+```
+
 As transações variam documentos CPF/CNPJ, contas, horários nos últimos 90 dias,
 valores, dispositivos e geolocalizações. Contas, documentos e dispositivos
 podem reaparecer aleatoriamente, para que o grafo e o histórico se formem pela

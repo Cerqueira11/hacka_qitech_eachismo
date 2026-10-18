@@ -10,6 +10,7 @@ from tests.run_dict_random_scenarios import (
     run_scenarios,
 )
 from tests.utils.dict_response_simulator import DICT_RESPONSE_FIXTURE, DictResponseSimulator
+from tests.utils.excel_report import create_results_workbook, run_workbook_path
 
 
 TEST_ROOT = Path(__file__).resolve().parents[1]
@@ -234,6 +235,67 @@ def test_random_payload_population_is_reproducible_by_seed():
 def test_runner_rejects_nonpositive_scenario_count():
     with pytest.raises(ValueError, match="maior que zero"):
         run_scenarios(seed=42, count=0)
+
+
+def test_excel_export_includes_api_verdict_and_marks_missing_post_results(tmp_path):
+    report = {
+        "generated_at": "2026-10-17T23:00:00-03:00",
+        "scenario_count": 1,
+        "scenarios": [
+            {
+                "fixture": "exemplo",
+                "post_payload": {
+                    "id": "pix-exemplo",
+                    "amount": 1500,
+                    "transaction_date": "2026-10-17T14:00:00-03:00",
+                    "source_account": {
+                        "owner": {"document_number": "12345678909"},
+                        "account_number": "1001",
+                    },
+                    "destination_account": {
+                        "owner": {"document_number": "98765432100"},
+                        "account_number": "2002",
+                    },
+                },
+                "dict_queries": {},
+                "post_result": {
+                    "http_status": 201,
+                    "response": {
+                        "status": "approved",
+                        "metadata": {"risk_score": 0.12, "reasons": ["destino_desconhecido"]},
+                    },
+                },
+            },
+            {
+                "fixture": "sem-post",
+                "post_payload": {},
+                "dict_queries": {},
+            },
+        ],
+    }
+    output_path = create_results_workbook(report, tmp_path / "resultados.xlsx")
+
+    from openpyxl import load_workbook
+
+    workbook = load_workbook(output_path, data_only=True)
+    summary = workbook["Resumo"]
+    transactions = workbook["Transações"]
+    assert summary["B6"].value == 1
+    assert summary["B8"].value == 1
+    assert transactions["L2"].value == 201
+    assert transactions["M2"].value == "approved"
+    assert transactions["N2"].value == 0.12
+    assert transactions["M3"].value == "Não registrado"
+
+
+def test_default_excel_path_is_unique_for_each_runner_execution(tmp_path):
+    first = run_workbook_path({"run_id": "a1b2c3d4"}, tmp_path)
+    second = run_workbook_path({"run_id": "e5f6a7b8"}, tmp_path)
+
+    assert first.parent == tmp_path
+    assert first.suffix == ".xlsx"
+    assert first.name.startswith("dict_random_results_")
+    assert first != second
 
 
 @pytest.mark.parametrize("fixture_path", sorted(POST_FIXTURE_DIRECTORY.glob("*.json")))

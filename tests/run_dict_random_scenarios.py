@@ -9,6 +9,7 @@ import uuid
 
 from dotenv import load_dotenv
 from tests.utils.dict_response_simulator import DictResponseSimulator
+from tests.utils.excel_report import create_results_workbook, run_workbook_path
 from tests.utils.request_generator import RequestGenerator
 
 
@@ -236,6 +237,11 @@ def main() -> None:
         default=DEFAULT_DICT_MOCK_PATH,
         help=f"Mock no formato interno da API (padrão: {DEFAULT_DICT_MOCK_PATH})",
     )
+    parser.add_argument(
+        "--excel-output",
+        type=Path,
+        help="Arquivo Excel de saída (padrão: mesmo nome do log com extensão .xlsx)",
+    )
     arguments = parser.parse_args()
 
     report = run_scenarios(seed=arguments.seed, count=arguments.count)
@@ -245,6 +251,11 @@ def main() -> None:
 
     post_errors = submit_scenarios(report)
     arguments.output.parent.mkdir(parents=True, exist_ok=True)
+    excel_output = arguments.excel_output or run_workbook_path(
+        report,
+        arguments.output.parent,
+    )
+    create_results_workbook(report, excel_output)
     formatted_report = json.dumps(report, indent=2, ensure_ascii=False)
 
     logger = logging.getLogger("dict_random_scenarios")
@@ -260,6 +271,7 @@ def main() -> None:
 
     logger.info(formatted_report)
     print(f"\nLog gravado em: {arguments.output.resolve()}")
+    print(f"Planilha Excel: {excel_output.resolve()}")
     print(f"Mock DICT usado pela API: {arguments.dict_mock_output.resolve()}")
     print(f"Cenários POST executados: {len(report['scenarios'])}")
     if post_errors:
