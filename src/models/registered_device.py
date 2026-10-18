@@ -4,7 +4,10 @@ from models.base import Base
 
 
 class RegisteredDevice(Base):
-    """Dispositivo cadastrado por um cliente (CPF/CNPJ). A R1 não lê mais esta tabela (S2)."""
+    """Cache interno da R1: dispositivo que a API externa já confirmou para o titular (CPF/CNPJ).
+
+    Gravado só pelo motor (resposta 200 da API). Não há rota para o usuário consultar ou cadastrar.
+    """
 
     __tablename__ = "registered_device"
 

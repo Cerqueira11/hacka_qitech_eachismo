@@ -93,9 +93,5 @@ class PayloadGenerator:
         }
 
     @staticmethod
-    def create_device_payload(document_number: str, device_id: str) -> dict:
-        return {"document_number": document_number, "device_id": device_id}
-
-    @staticmethod
     def create_person_link_payload(cpf: str, cnpj: str, relation: str = "PARTNER") -> dict:
         return {"cpf": cpf, "cnpj": cnpj, "relation": relation}

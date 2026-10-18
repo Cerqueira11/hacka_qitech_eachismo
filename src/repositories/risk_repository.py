@@ -50,8 +50,8 @@ class RiskRepository:
     def sum_unregistered_device_amount(self, source_account_id: UUID, start: datetime, end: datetime) -> int:
         """Quanto a origem movimentou em [start, end) por dispositivos não cadastrados.
 
-        Usa o device_registered gravado em cada Pix (a resposta da API de
-        dispositivo naquele momento, S2). Pix com a API indisponível (NULL) não
+        Usa o device_registered gravado em cada Pix (o que a R1 concluiu naquele
+        momento: registered_device ou a API de dispositivo). Pix com a API indisponível (NULL) não
         entram: a R1 não foi avaliada neles, e contar seria rejeitar por falha nossa.
 
         A janela é o dia inteiro, não "até o Pix atual": com o lock por origem

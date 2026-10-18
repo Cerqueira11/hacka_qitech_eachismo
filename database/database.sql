@@ -47,8 +47,9 @@ CREATE TABLE person_link (
 
 CREATE INDEX ix_person_link_cnpj ON person_link (cnpj);
 
--- Dispositivos cadastrados do cliente. Alimentada por POST /device.
--- A R1 NÃO lê mais esta tabela: pergunta à API externa de dispositivo (S2).
+-- Cache interno da R1: dispositivos que a API externa de dispositivo já
+-- confirmou (resposta 200). A R1 olha aqui primeiro e só chama a API se não
+-- achar. Só o motor grava; o usuário não consulta nem cadastra.
 CREATE TABLE registered_device (
     document_number VARCHAR(14) NOT NULL,
     device_id       VARCHAR(50) NOT NULL,
@@ -77,8 +78,8 @@ CREATE TABLE transaction_history (
     -- SHA-256 do payload normalizado: mesmo "id" com outro corpo -> 409 (C4).
     -- NULL só em linhas gravadas antes da v2.
     payload_sha256         CHAR(64),
-    -- Resposta da API de dispositivo no momento do Pix (S2): true/false, ou
-    -- NULL quando ela estava indisponível. Base da soma diária da R1.
+    -- Device cadastrado no momento do Pix (registered_device ou API): true/false, ou
+    -- NULL quando a API estava indisponível. Base da soma diária da R1.
     device_registered      BOOLEAN,
     transaction_date       TIMESTAMPTZ NOT NULL DEFAULT now(),
     created_at             TIMESTAMPTZ NOT NULL DEFAULT now(),

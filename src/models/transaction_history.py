@@ -22,7 +22,7 @@ class TransactionHistory(Base):
     risk_score = Column(Numeric(5, 4), nullable=True)
     # SHA-256 do payload normalizado (C4). NULL só em linhas anteriores à v2.
     payload_sha256 = Column(String(64), nullable=True)
-    # Resposta da API de dispositivo no momento do Pix (S2); NULL = indisponível.
+    # Device cadastrado no momento do Pix (tabela ou API); NULL = API indisponível.
     device_registered = Column(Boolean, nullable=True)
     transaction_date = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
     created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())

@@ -14,6 +14,7 @@ from errors import IdempotencyConflict, NotFoundPixTransaction
 from models import TransactionHistory
 from repositories import (
     AccountRepository,
+    DeviceRepository,
     GeolocationRepository,
     GraphRepository,
     MetadataRepository,
@@ -35,8 +36,11 @@ class PixTransactionController(BaseController):
         self.geolocation_repository = GeolocationRepository(self.context)
         self.metadata_repository = MetadataRepository(self.context)
         self.status_result_history_repository = StatusResultHistoryRepository(self.context)
+        self.device_repository = DeviceRepository(self.context)
 
-        self.context_builder = ContextBuilder(RiskRepository(self.context), DictMockClient(), DeviceApiClient())
+        self.context_builder = ContextBuilder(
+            RiskRepository(self.context), DictMockClient(), self.device_repository, DeviceApiClient()
+        )
         self.graph_scorer = GraphScorer(GraphRepository(self.context))
         self.engine = AntifraudEngine(self.graph_scorer)
 
@@ -48,7 +52,8 @@ class PixTransactionController(BaseController):
         Mesmo "id" com outro conteúdo é 409 (C4).
 
         Ordem (C4): externos → lock por origem → idempotência → upsert →
-        regras → gravação → commit.
+        regras → gravação → commit. Dispositivo (R1): registered_device
+        primeiro, API externa só se não achar; o 200 é gravado na tabela.
         """
         # ETAPA 0 — portaria (o schema já foi validado no resource)
         data = PixTransactionInput.from_payload(payload)
@@ -63,7 +68,8 @@ class PixTransactionController(BaseController):
             return self._replay(existing, payload_sha256), False
 
         # ETAPA 1a — o que vem de fora, ANTES do lock: uma API lenta não
-        # segura a fila de Pix da mesma origem.
+        # segura a fila de Pix da mesma origem. O dispositivo é procurado
+        # primeiro em registered_device; a API só é chamada se não estiver lá.
         external = self.context_builder.load_external(data)
 
         # Lock por conta de origem até o commit: Pix diferentes da mesma
@@ -86,6 +92,10 @@ class PixTransactionController(BaseController):
         verdict = self.engine.evaluate(antifraud_context)
 
         # ETAPA 6 — gravação
+        if external.device_confirmed_by_api:
+            # A API confirmou: o próximo Pix deste device nem chama a API.
+            self.device_repository.save(data.source_account.document_number, data.device_id)
+
         geolocation = None
         if data.geolocation is not None:
             geolocation = self.geolocation_repository.create(

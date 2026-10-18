@@ -8,7 +8,7 @@ from connectors.device_client import DeviceApiClient, DeviceApiUnavailable
 from connectors.dict_client import CLEAN_PERSON, DictMockClient, DictPersonRisk, DictUnavailable
 from dtos.pix_transaction_input import PixTransactionInput
 from models import AccountNode
-from repositories import RiskRepository
+from repositories import DeviceRepository, RiskRepository
 from utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -42,8 +42,11 @@ class ExternalSignals:
     source_linked: Tuple[Tuple[str, DictPersonRisk], ...] = ()
     destination_linked: Tuple[Tuple[str, DictPersonRisk], ...] = ()
 
-    # API de dispositivo (R1). None = indisponível -> R1 pede 2FA.
+    # Dispositivo (R1): registered_device primeiro, API externa só se não achar.
+    # None = API indisponível -> R1 pede 2FA.
     device_registered: Optional[bool] = None
+    # True quando a API acabou de confirmar (200): o controller grava em registered_device.
+    device_confirmed_by_api: bool = False
 
 
 @dataclass
@@ -94,26 +97,45 @@ class AntifraudContext:
 
 class ContextBuilder:
     def __init__(
-        self, risk_repository: RiskRepository, dict_client: DictMockClient, device_client: DeviceApiClient
+        self,
+        risk_repository: RiskRepository,
+        dict_client: DictMockClient,
+        device_repository: DeviceRepository,
+        device_client: DeviceApiClient,
     ) -> None:
         self.risk = risk_repository
         self.dict = dict_client
-        self.device = device_client
+        self.devices = device_repository
+        self.device_api = device_client
 
     # ── Fora do lock ────────────────────────────────────────────────────
     def load_external(self, data: PixTransactionInput) -> ExternalSignals:
-        device_registered = self._load_device(data)
-        return self._load_dict(data, device_registered)
+        registered, confirmed_by_api = self._load_device(data)
+        return self._load_dict(data, registered, confirmed_by_api)
 
-    def _load_device(self, data: PixTransactionInput) -> Optional[bool]:
+    def _load_device(self, data: PixTransactionInput) -> Tuple[Optional[bool], bool]:
+        """(registrado?, confirmado agora pela API?).
+
+        1. registered_device tem o par (documento, device) .... registrado, sem chamar a API
+        2. senão, API externa responde registered = true ...... registrado; o controller grava na tabela
+        3. API responde 404 (ou registered = false) .......... não registrado; nada é gravado,
+                                                                 a próxima vez pergunta de novo
+        4. API indisponível ................................... None: a R1 pede 2FA
+        """
+        document_number = data.source_account.document_number
+        if self.devices.is_registered(document_number, data.device_id):
+            return True, False
         try:
-            return self.device.is_registered(data.source_account.document_number, data.device_id)
+            registered = self.device_api.is_registered(document_number, data.device_id)
         except DeviceApiUnavailable as error:
             # Sem a API, a R1 não tem como decidir: o motor pede 2FA.
             logger.warning(f"API de dispositivo indisponível, seguindo sem ela: {error}")
-            return None
+            return None, False
+        return registered, registered
 
-    def _load_dict(self, data: PixTransactionInput, device_registered: Optional[bool]) -> ExternalSignals:
+    def _load_dict(
+        self, data: PixTransactionInput, device_registered: Optional[bool], device_confirmed_by_api: bool
+    ) -> ExternalSignals:
         source_document = data.source_account.document_number
         destination_document = data.destination_account.document_number
         try:
@@ -130,11 +152,16 @@ class ContextBuilder:
                     for document in self.risk.linked_documents(destination_document)
                 ),
                 device_registered=device_registered,
+                device_confirmed_by_api=device_confirmed_by_api,
             )
         except DictUnavailable as error:
             # Sem DICT, a R4 não tem como decidir: o motor pede 2FA. A R3 não usa o DICT (C2).
             logger.warning(f"DICT indisponível, seguindo sem ele: {error}")
-            return ExternalSignals(dict_available=False, device_registered=device_registered)
+            return ExternalSignals(
+                dict_available=False,
+                device_registered=device_registered,
+                device_confirmed_by_api=device_confirmed_by_api,
+            )
 
     # ── Dentro do lock ──────────────────────────────────────────────────
     def build(

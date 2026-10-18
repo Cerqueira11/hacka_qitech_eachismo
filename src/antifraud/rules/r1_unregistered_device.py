@@ -1,6 +1,7 @@
 """R1 — Dispositivo não cadastrado: R$ 200 por Pix e R$ 1.000 por dia.
 
-O cadastro vem da API externa de dispositivo (S2), não da tabela registered_device.
+Cadastrado = está em registered_device (cache interno) ou a API externa de
+dispositivo confirmou agora (e o motor gravou na tabela). Ver ContextBuilder._load_device.
 """
 
 from typing import List
