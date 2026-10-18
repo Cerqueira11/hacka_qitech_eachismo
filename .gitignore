@@ -76,3 +76,7 @@ coverage.xml
 # --- Tipagem estÃ¡tica --------------------------------------
 .mypy_cache/
 .ruff_cache/
+
+# --- Documentos internos temporarios ---
+*pendencias*.md
+*pendências*.md
