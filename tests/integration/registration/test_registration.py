@@ -3,53 +3,14 @@ from tests.utils.dict_personas import MULE_CNPJ
 
 
 class TestDevice:
-    def test_registers_device_then_returns_existing(self):
-        payload = PayloadGenerator.create_device_payload(
-            RandomGenerator.generate_cpf(), PayloadGenerator.random_device_id()
+    def test_device_registration_is_not_exposed(self):
+        """registered_device é cache interno da R1: só a API externa de dispositivo põe alguém lá."""
+        status, response = RequestGenerator.POST_device(
+            {"document_number": RandomGenerator.generate_cpf(), "device_id": PayloadGenerator.random_device_id()}
         )
 
-        status, created = RequestGenerator.POST_device(payload)
-        assert status == 201
-        assert created["device_id"] == payload["device_id"]
-        # Documento volta sem máscara.
-        assert created["document_number"] == "".join(c for c in payload["document_number"] if c.isdigit())
-
-        status, again = RequestGenerator.POST_device(payload)
-        assert status == 200
-        assert again == created
-
-    def test_accepts_cnpj_owner(self):
-        payload = PayloadGenerator.create_device_payload(
-            RandomGenerator.generate_cnpj(), PayloadGenerator.random_device_id()
-        )
-
-        status, _ = RequestGenerator.POST_device(payload)
-
-        assert status == 201
-
-    def test_invalid_document(self):
-        payload = PayloadGenerator.create_device_payload("123.456.789-00", PayloadGenerator.random_device_id())
-
-        status, response = RequestGenerator.POST_device(payload)
-
-        assert status == 422
-        assert response["code"] == "QIT001008"
-
-    def test_missing_device_id(self):
-        status, response = RequestGenerator.POST_device({"document_number": RandomGenerator.generate_cpf()})
-
-        assert status == 400
-        assert response["code"] == "QIT000001"
-
-    def test_without_token_is_forbidden(self):
-        payload = PayloadGenerator.create_device_payload(
-            RandomGenerator.generate_cpf(), PayloadGenerator.random_device_id()
-        )
-
-        status, response = RequestGenerator.POST_device(payload, token="errado")
-
-        assert status == 403
-        assert response["code"] == "QIT000002"
+        assert status == 404
+        assert response["code"] == "QIT000404"
 
 
 class TestPersonLink:

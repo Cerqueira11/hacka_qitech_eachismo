@@ -18,7 +18,11 @@ class ObjectGenerator:
 
     @staticmethod
     def register_device(document_number: str, device_id: str) -> None:
-        """Faz a API de dispositivo (mockserver) responder "registered": true (S2)."""
+        """Faz a API de dispositivo (mockserver) responder "registered": true.
+
+        No primeiro Pix o motor não acha o device em registered_device, chama a
+        API, recebe o 200 e grava na tabela.
+        """
         DeviceApiMock.registered(only_digits(document_number), device_id)
 
     @staticmethod

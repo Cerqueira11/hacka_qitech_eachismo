@@ -18,7 +18,7 @@ HISTORY_WINDOW_DAYS = 90
 LOG_STD_FLOOR = 0.2  # desvio mínimo em ln(valor): evita z infinito para quem paga sempre o mesmo valor
 
 # R1 — dispositivo não cadastrado (limite de dispositivo novo). O cadastro
-# vem da API externa de dispositivo (S2).
+# vem de registered_device ou, se não estiver lá, da API externa de dispositivo.
 UNREGISTERED_DEVICE_TX_LIMIT = 20_000
 UNREGISTERED_DEVICE_DAILY_LIMIT = 100_000
 UNREGISTERED_DEVICE_WEIGHT = 0.15

@@ -7,6 +7,8 @@ usada pelo mock, e o motor depende de um campo só, o booleano "registered":
       200 {"document_number": "...", "device_id": "...", "registered": true}
       404 -> registered = false (dispositivo desconhecido)
 
+Só é chamada quando o device não está em registered_device (DeviceRepository).
+
 Qualquer outra coisa (timeout, erro de rede, 5xx, 429, 200 sem o booleano)
 vira DeviceApiUnavailable: quem chama decide o que fazer (a R1 pede 2FA).
 Se o formato real for diferente, só este arquivo muda.

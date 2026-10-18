@@ -144,14 +144,10 @@ def create_app() -> FastAPI:
         methods=["GET"]
     )
 
-    # Cadastros: vínculo CPF <-> CNPJ (R4) e dispositivo. O /device só grava
-    # em registered_device: a R1 consulta a API externa de dispositivo (S2).
+    # Cadastro de vínculo CPF <-> CNPJ (R4). Dispositivo NÃO tem rota: a
+    # tabela registered_device é cache interno, gravado só quando a API
+    # externa de dispositivo confirma (R1).
     registration_resource = RegistrationResource()
-    application.add_api_route(
-        "/device",
-        registration_resource.on_post_device,
-        methods=["POST"]
-    )
     application.add_api_route(
         "/person_link",
         registration_resource.on_post_person_link,

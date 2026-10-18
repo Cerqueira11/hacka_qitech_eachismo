@@ -108,12 +108,18 @@ ETAPA 1 — Contexto (tudo calculado ANTES de gravar o Pix)
     device_compartilhado ..... contas de origem distintas no mesmo device em 24 h
     aresta_anterior .......... já houve Pix origem→destino? e entre o par, em qualquer sentido?
 
-  Da API externa de dispositivo (R1; mock: mockserver no docker compose)
-    device_registered ........ GET /devices/{documento origem}/{device_id}
-                               200 {"registered": true|false} · 404 = não cadastrado
-                               O formato real ainda não existe: o motor lê só o booleano.
-                               Gravado em transaction_history.device_registered.
-    Timeout (200 ms), 5xx ou 429 → a R1 não roda: 2FA + peso 0.30 "device_api_indisponivel".
+  Dispositivo (R1), nesta ordem:
+    1. registered_device tem (documento origem, device_id)? ... cadastrado; a API NÃO é chamada
+    2. senão, API externa (mock: mockserver no docker compose)
+         GET /devices/{documento origem}/{device_id}
+         200 {"registered": true} ......... cadastrado; o device é GRAVADO em registered_device
+                                            (o próximo Pix dele para no passo 1)
+         404 (ou "registered": false) ..... não cadastrado; nada é gravado (a próxima vez
+                                            pergunta de novo) e a R1 aplica peso e limites
+         timeout (200 ms), 5xx ou 429 ..... a R1 não roda: 2FA + peso 0.30 "device_api_indisponivel"
+       O formato real da API ainda não existe: o motor lê só o booleano.
+    registered_device é cache interno: só o motor grava, não há rota para o usuário
+    consultar ou cadastrar. O resultado vai para transaction_history.device_registered.
 
   Do DICT (mock: src/mocks/dict_mock.json) — só estatísticas por documento (R4)
     stats_origem/destino ..... PersonStatistics (contadores m12 por FraudType)
@@ -339,11 +345,11 @@ Cadastros que alimentam as regras (INTERNAL-TOKEN obrigatório)
 ------------------------------------------------------------------------------------------
 
   POST /person_link  {"cpf", "cnpj", "relation"}                → R4 (vinculados)
-  POST /device       {"document_number", "device_id"}          → grava em registered_device,
-                                                                  que a R1 NÃO lê mais (ela
-                                                                  pergunta à API de dispositivo)
                      relation: PARTNER | SOLE_PROPRIETOR | ADMINISTRATOR
   201 quando cria, 200 quando já existia.
+
+  Dispositivo não tem cadastro pelo usuário: registered_device só recebe o que a API
+  externa de dispositivo confirmou (ETAPA 1).
 
   O mock do DICT (src/mocks/dict_mock.json) traz personas prontas para demonstração:
   laranja, golpista, em análise, conta roubada, sinal fraco e DICT indisponível.
@@ -382,7 +388,7 @@ Exemplo: o payload pix-000123
     rules_score = 1 - (0.8 · 0.9) = 0.28 → risk_score = 0.28
     status = rejected (ação REJECT de R1)
 
-  Dispositivo cadastrado (POST /device antes): nenhuma ação fixa, risk_score 0.28
+  Dispositivo cadastrado (registered_device ou 200 da API): nenhuma ação fixa, risk_score 0.28
   → approved, de dia ou de noite.
 
   Mesmo cliente, dispositivo cadastrado, com 5 noites anteriores de ~R$ 100 cada:

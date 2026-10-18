@@ -51,7 +51,8 @@ services:
       IF_WEBHOOK_URL: ${IF_WEBHOOK_URL:-}
       IF_WEBHOOK_TOKEN: ${IF_WEBHOOK_TOKEN:-default_token}
       IF_WEBHOOK_TIMEOUT: ${IF_WEBHOOK_TIMEOUT:-5}
-      # API externa de dispositivo cadastrado (R1, decisao S2). Localmente
+      # API externa de dispositivo cadastrado (R1), chamada so quando o device
+      # nao esta em registered_device; o 200 e gravado na tabela. Localmente
       # quem responde e o mockserver abaixo: sem expectativa cadastrada ele
       # devolve 404, que a R1 le como "dispositivo nao cadastrado".
       DEVICE_API_URL: ${DEVICE_API_URL:-http://mockserver:1080}

@@ -125,6 +125,49 @@ class TestR1UnregisteredDevice:
         assert "limite_dispositivo_novo" not in reasons(response)
         assert "dispositivo_nao_cadastrado" not in reasons(response)
 
+    def test_device_confirmed_by_api_is_saved_and_reused(self):
+        """200 da API grava em registered_device: o próximo Pix nem chama a API."""
+        document, account, device = (
+            RandomGenerator.generate_cpf(), PayloadGenerator.random_account_number(),
+            PayloadGenerator.random_device_id(),
+        )
+        DeviceApiMock.registered(document, device, times=1)  # depois disso a API devolveria 404
+
+        def pix(when: str) -> dict:
+            return ObjectGenerator.create_pix_transaction(PayloadGenerator.create_pix_transaction_payload(
+                amount=30000, transaction_date=when, source_document_number=document,
+                source_account_number=account, device_id=device,
+            ))
+
+        first, second = pix(DAY), pix(at(DAY, hours=1))
+
+        for response in (first, second):
+            assert "limite_dispositivo_novo" not in reasons(response)
+            assert "dispositivo_nao_cadastrado" not in reasons(response)
+        assert DeviceApiMock.calls(document, device) == 1
+
+    def test_device_not_found_is_not_saved(self):
+        """404 não grava nada: depois que o device é cadastrado na API, o Pix seguinte já passa."""
+        document, account, device = (
+            RandomGenerator.generate_cpf(), PayloadGenerator.random_account_number(),
+            PayloadGenerator.random_device_id(),
+        )
+
+        def pix(amount: int, when: str) -> dict:
+            return ObjectGenerator.create_pix_transaction(PayloadGenerator.create_pix_transaction_payload(
+                amount=amount, transaction_date=when, source_document_number=document,
+                source_account_number=account, device_id=device,
+            ))
+
+        unknown = pix(15000, DAY)
+        DeviceApiMock.registered(document, device)
+        known = pix(30000, at(DAY, hours=1))
+
+        assert "dispositivo_nao_cadastrado" in reasons(unknown)
+        assert "limite_dispositivo_novo" not in reasons(known)
+        assert "dispositivo_nao_cadastrado" not in reasons(known)
+        assert DeviceApiMock.calls(document, device) == 2
+
     def test_device_api_unavailable_asks_2fa(self):
         payload = PayloadGenerator.create_pix_transaction_payload(amount=150000, transaction_date=DAY)
         DeviceApiMock.unavailable(payload["source_account"]["owner"]["document_number"], payload["source"]["device_id"])

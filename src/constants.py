@@ -24,7 +24,8 @@ INSTITUTION_ISPB = os.environ.get("INSTITUTION_ISPB", "00000000")
 # É lido a cada consulta, então editar o arquivo vale na hora, sem reiniciar.
 DICT_MOCK_FILE = os.environ.get("DICT_MOCK_FILE", os.path.join(SERVICE_ROOT, "mocks", "dict_mock.json"))
 
-# API externa de dispositivo cadastrado (R1, decisão S2). O motor lê só o
+# API externa de dispositivo cadastrado (R1). Só é chamada quando o device
+# não está em registered_device; o 200 é gravado lá. O motor lê só o
 # campo booleano "registered" de GET /devices/{document_number}/{device_id}.
 # Sem URL configurada a API conta como indisponível: a R1 pede 2FA, nunca
 # aprova às cegas. No docker compose ela aponta para o mockserver.

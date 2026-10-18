@@ -12,12 +12,7 @@ def _response(result: dict, created: bool) -> JSONResponse:
 
 
 class RegistrationResource:
-    """Porta de entrada HTTP dos cadastros que alimentam as regras antifraude."""
-
-    @SchemaHandler.validate("post_device.json")
-    def on_post_device(self, payload: dict) -> JSONResponse:
-        result, created = RegistrationController().register_device(payload)
-        return _response(result, created)
+    """Porta de entrada HTTP do cadastro de vínculos CPF <-> CNPJ (R4)."""
 
     @SchemaHandler.validate("post_person_link.json")
     def on_post_person_link(self, payload: dict) -> JSONResponse:
