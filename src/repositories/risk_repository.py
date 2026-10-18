@@ -17,6 +17,9 @@ def _utc_offset(local_tz: tzinfo) -> str:
     return f"{sign}{hours:02d}:{minutes:02d}"
 
 
+from antifraud import config
+
+
 def latest_status():
     """Último veredito de cada transação, para usar dentro de um WHERE."""
     return (
@@ -31,7 +34,14 @@ def latest_status():
 
 def not_rejected():
     # Pix rejeitado não movimentou dinheiro: não entra em soma, média nem padrão.
-    return latest_status() != "rejected"
+    # 2FA pendente que ultrapassou o TTL (15 minutos) expirou e também não entra em somas.
+    return and_(
+        latest_status() != "rejected",
+        or_(
+            latest_status() != "two_factor_required",
+            TransactionHistory.transaction_date >= func.now() - cast(f"{config.TWO_FACTOR_TTL_MINUTES} minutes", Interval),
+        ),
+    )
 
 
 class RiskRepository:
@@ -245,3 +255,40 @@ class RiskRepository:
         for cpf, cnpj in rows:
             linked.add(cnpj.strip() if cpf.strip() == document_number else cpf.strip())
         return sorted(linked)
+
+    # ── N1 e N2: IP compartilhado e histórico de IPs da origem ──────────
+    def distinct_sources_on_ip(self, ip: str, since: datetime, as_of: datetime) -> Set[UUID]:
+        rows = (
+            self.session.query(TransactionHistory.source_account_id)
+            .filter(
+                TransactionHistory.source_ip == ip,
+                TransactionHistory.transaction_date >= since,
+                TransactionHistory.transaction_date <= as_of,
+            )
+            .distinct()
+            .all()
+        )
+        return {row[0] for row in rows}
+
+    def has_seen_source_ip(self, source_account_id: UUID, ip: str, as_of: datetime) -> bool:
+        return bool(
+            self.session.query(
+                exists().where(
+                    TransactionHistory.source_account_id == source_account_id,
+                    TransactionHistory.source_ip == ip,
+                    TransactionHistory.transaction_date < as_of,
+                )
+            ).scalar()
+        )
+
+    def count_source_ips(self, source_account_id: UUID, as_of: datetime) -> int:
+        return (
+            self.session.query(func.count(func.distinct(TransactionHistory.source_ip)))
+            .filter(
+                TransactionHistory.source_account_id == source_account_id,
+                TransactionHistory.transaction_date < as_of,
+            )
+            .scalar()
+            or 0
+        )
+

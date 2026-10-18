@@ -1,0 +1,13 @@
+{
+  "title": "Post2FAResult",
+  "description": "Grava o resultado do 2FA para uma transação PIX (D2).",
+  "type": "object",
+  "properties": {
+    "status": {
+      "type": "string",
+      "enum": ["approved", "rejected"]
+    }
+  },
+  "required": ["status"],
+  "additionalProperties": false
+}

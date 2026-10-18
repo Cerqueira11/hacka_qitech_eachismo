@@ -71,6 +71,19 @@ class TestAmountFamily:
         ]
         assert combine_rules(hits) == pytest.approx(1 - 0.60 * 0.90)
 
+    def test_r7_discount_applies_only_to_amount_deviation_family(self):
+        family = config.AMOUNT_DEVIATION_FAMILY
+        # R6 com 0.40, desconto de 0.30 na família desvio_valor -> 0.40 * (1 - 0.30) = 0.28
+        # R4 (outro sinal independente) com 0.40 -> NÃO deve sofrer desconto!
+        hits = [
+            RuleResult("R6", "valor_atipico", weight=0.40, family=family),
+            RuleResult("R7", "pagamento_recorrente", discount=0.30),
+            RuleResult("R4", "destino_em_analise", weight=0.40),
+        ]
+        # Esperado: 1 - (1 - 0.28) * (1 - 0.40) = 1 - 0.72 * 0.60 = 1 - 0.432 = 0.568
+        assert combine_rules(hits) == pytest.approx(0.568)
+
+
 
 class TestR1DeviceApi:
     def test_unavailable_asks_2fa(self):
@@ -116,3 +129,40 @@ class TestCanonicalHash:
         original = PixTransactionInput.from_payload(self.payload())
         changed = PixTransactionInput.from_payload({**self.payload(), "amount": 150001})
         assert original.canonical_sha256() != changed.canonical_sha256()
+
+
+class TestN1AndN2:
+    def test_n1_shared_ip_triggers_weight(self):
+        from antifraud.rules import r8_velocity
+        ctx = SimpleNamespace(
+            source_attempts_short=0,
+            source_attempts_long=0,
+            destination_sources_window=set(),
+            destination_age_days=100,
+            device_sources_window=set(),
+            ip_sources_window={"account1", "account2", "account3"},  # >= 3 contas
+            device_registered=True,
+            is_new_ip_for_source=False,
+            has_previous_edge_to_destination=True,
+        )
+        hits = r8_velocity.evaluate(ctx, [])
+        assert any(h.reason == "ip_compartilhado" and h.weight == config.IP_SHARED_WEIGHT for h in hits)
+
+    def test_n2_takeover_combo_asks_2fa(self):
+        from antifraud.rules import r8_velocity
+        ctx = SimpleNamespace(
+            source_attempts_short=0,
+            source_attempts_long=0,
+            destination_sources_window=set(),
+            destination_age_days=100,
+            device_sources_window=set(),
+            ip_sources_window={"account1"},
+            device_registered=False,             # device não cadastrado
+            is_new_ip_for_source=True,           # IP nunca visto na origem
+            has_previous_edge_to_destination=False,  # destino desconhecido
+        )
+        hits = r8_velocity.evaluate(ctx, [])
+        takeover_hit = next(h for h in hits if h.reason == "combo_tomada_conta")
+        assert takeover_hit.action == Action.TWO_FACTOR
+        assert takeover_hit.weight == config.TAKEOVER_COMBO_WEIGHT
+
