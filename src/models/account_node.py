@@ -24,6 +24,7 @@ class AccountNode(Base):
     opening_date = Column(DateTime(timezone=True), nullable=True)
     external_risk = Column(Numeric(5, 4), nullable=False, default=0, server_default="0")
     risk_score = Column(Numeric(5, 4), nullable=False, default=0, server_default="0")
+    risk_updated_at = Column(DateTime(timezone=True), nullable=True)
     degree = Column(Integer, nullable=False, default=0, server_default="0")
     created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
     updated_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())

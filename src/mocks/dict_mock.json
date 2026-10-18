@@ -1,0 +1,51 @@
+{
+  "_doc": [
+    "DICT simulado. Fora do que está aqui, toda conta existe no DICT com o titular",
+    "informado no payload e nenhum documento tem marcação ou infração.",
+    "persons[documento] segue o formato do PersonStatistics da API DICT v2.12.1",
+    "(contadores d90/m12/m60 por FraudType). OpenInfractions não faz parte do",
+    "PersonStatistics: simula a listagem de notificações de infração abertas.",
+    "entries[participant/branch/account_number]: null = conta não existe no DICT;",
+    "objeto = conta existe com aquele titular. branch com 4 dígitos, conta sem zeros à esquerda.",
+    "Editar este arquivo vale na hora: ele é relido quando muda."
+  ],
+  "unavailable_documents": ["81618495950"],
+  "entries": {
+    "60701190/0001/99999": null,
+    "60701190/0001/88888": {"Owner": {"TaxIdNumber": "31034131656"}}
+  },
+  "persons": {
+    "10433218100": {
+      "_persona": "laranja: Pix para ele é rejeitado (R4 destino_marcado)",
+      "FraudMarkers": {"MuleAccounts": {"d90": 1, "m12": 2, "m60": 2}},
+      "InfractionReports": {"OpenReports": 0}
+    },
+    "96001338914": {
+      "_persona": "golpista: Pix dele é rejeitado (R4 origem_marcada)",
+      "FraudMarkers": {"ScammerAccounts": {"d90": 0, "m12": 1, "m60": 1}},
+      "InfractionReports": {"OpenReports": 0}
+    },
+    "08386379499": {
+      "_persona": "em análise: Pix para ele pede 2FA (R4 destino_em_analise)",
+      "FraudMarkers": {},
+      "InfractionReports": {"OpenReports": 1},
+      "OpenInfractions": [{"SituationType": "SCAM", "Status": "OPEN"}]
+    },
+    "02654235114": {
+      "_persona": "conta roubada: Pix dele pede 2FA (R4 origem_conta_roubada)",
+      "FraudMarkers": {},
+      "InfractionReports": {"OpenReports": 1},
+      "OpenInfractions": [{"SituationType": "ACCOUNT_TAKEOVER", "Status": "ACKNOWLEDGED"}]
+    },
+    "16155940789": {
+      "_persona": "sinal fraco: marcação OTHER, só soma peso 0.30",
+      "FraudMarkers": {"OtherFrauds": {"d90": 0, "m12": 1, "m60": 1}},
+      "InfractionReports": {"OpenReports": 0}
+    },
+    "92832764000161": {
+      "_persona": "CNPJ laranja. Vincule um CPF a ele com POST /person_link e os Pix desse CPF pedem 2FA (R4 vinculado_marcado)",
+      "FraudMarkers": {"MuleAccounts": {"d90": 1, "m12": 1, "m60": 1}},
+      "InfractionReports": {"OpenReports": 0}
+    }
+  }
+}

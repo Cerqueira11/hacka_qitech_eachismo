@@ -20,6 +20,10 @@ INTERNAL_TOKEN = os.environ.get("INTERNAL_TOKEN")
 # "00000000" é só para rodar localmente; configure o ISPB real no ambiente.
 INSTITUTION_ISPB = os.environ.get("INSTITUTION_ISPB", "00000000")
 
+# Arquivo com as respostas do DICT simulado (personas de demonstração).
+# É lido a cada consulta, então editar o arquivo vale na hora, sem reiniciar.
+DICT_MOCK_FILE = os.environ.get("DICT_MOCK_FILE", os.path.join(SERVICE_ROOT, "mocks", "dict_mock.json"))
+
 # Liga a impressao de TODO SQL que o SQLAlchemy emite. Serve pra
 # responder "que consulta esse repository virou, afinal?" sem abrir o
 # banco do lado. Quem lê isto é o src/utils/logger.py, e o porquê de

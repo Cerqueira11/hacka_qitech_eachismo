@@ -26,3 +26,23 @@ class RequestGenerator:
             headers={"INTERNAL-TOKEN": INTERNAL_TOKEN},
         )
         return response.response_status, response.response_json
+
+    @staticmethod
+    def POST_device(payload: dict, token: str = INTERNAL_TOKEN) -> BaseConnectorResponse:
+        response = ClientRequisition.send(
+            "POST",
+            "/device",
+            payload=payload,
+            headers={"INTERNAL-TOKEN": token},
+        )
+        return response.response_status, response.response_json
+
+    @staticmethod
+    def POST_person_link(payload: dict, token: str = INTERNAL_TOKEN) -> BaseConnectorResponse:
+        response = ClientRequisition.send(
+            "POST",
+            "/person_link",
+            payload=payload,
+            headers={"INTERNAL-TOKEN": token},
+        )
+        return response.response_status, response.response_json

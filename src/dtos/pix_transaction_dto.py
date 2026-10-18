@@ -25,16 +25,23 @@ class PixTransactionDTO:
 
     @staticmethod
     def metadata_to_dict(metadata: Optional[Metadata]) -> dict:
-        """Só entra no metadata o que a análise de fato preencheu.
+        """O score final e os motivos, sem os pesos de cada regra.
 
-        Enquanto as regras não estão ligadas, nada é preenchido e o
-        metadata sai como {}.
+        Os pesos, os scores parciais e a evidência do grafo ficam gravados na
+        tabela metadata para auditoria, mas não saem na resposta: expor quanto
+        cada regra pesa ensina o fraudador a ficar logo abaixo do limiar.
         """
         dto = dict()
         if metadata is None:
             return dto
         if metadata.risk_score is not None:
             dto["risk_score"] = float(metadata.risk_score)
-        if metadata.rule_hits:
-            dto["reasons"] = [hit.get("reason") or hit.get("rule") for hit in metadata.rule_hits]
+        # Sempre presente (lista vazia quando nenhuma regra acionou): quem
+        # consome não precisa tratar a ausência do campo.
+        reasons = []
+        for hit in metadata.rule_hits or []:
+            reason = hit.get("reason") or hit.get("rule")
+            if reason not in reasons:
+                reasons.append(reason)
+        dto["reasons"] = reasons
         return dto

@@ -2,14 +2,20 @@ from typing import Tuple
 
 from sqlalchemy.exc import IntegrityError
 
+from antifraud import config as antifraud_config
+from antifraud.context import ContextBuilder
+from antifraud.engine import AntifraudEngine
+from antifraud.graph import GraphScorer
+from connectors.dict_client import DictMockClient
 from controllers.base_controller import BaseController
-from dtos import AccountInput, PixTransactionDTO, PixTransactionInput
+from dtos import PixTransactionDTO, PixTransactionInput
 from errors import NotFoundPixTransaction
-from models import AccountNode
 from repositories import (
     AccountRepository,
     GeolocationRepository,
+    GraphRepository,
     MetadataRepository,
+    RiskRepository,
     StatusResultHistoryRepository,
     TransactionRepository,
 )
@@ -18,7 +24,7 @@ TRANSACTION_ID_CONSTRAINT = "uq_transaction_history_transaction_id"
 
 
 class PixTransactionController(BaseController):
-    """Regras de negócio e orquestração da análise de transações PIX antifraude."""
+    """Orquestra a análise antifraude de um Pix (o caminho de regras_antifraude.txt)."""
 
     def __init__(self) -> None:
         super().__init__(__name__)
@@ -28,21 +34,9 @@ class PixTransactionController(BaseController):
         self.metadata_repository = MetadataRepository(self.context)
         self.status_result_history_repository = StatusResultHistoryRepository(self.context)
 
-    def _evaluate_antifraud(
-        self,
-        data: PixTransactionInput,
-        source_account: AccountNode,
-        destination_account: AccountNode,
-    ) -> str:
-        """Ponto de entrada das regras antifraude.
-
-        Roda ANTES de a transação ser gravada: assim velocity, média de valores
-        e vizinhança do grafo enxergam só o passado, nunca o próprio Pix.
-
-        Status possíveis (enum_status_result): 'approved' | 'rejected' | 'two_factor_required'
-        """
-        # Regra padrão inicial (espaço reservado para o motor de regras):
-        return "approved"
+        self.context_builder = ContextBuilder(RiskRepository(self.context), DictMockClient())
+        self.graph_scorer = GraphScorer(GraphRepository(self.context))
+        self.engine = AntifraudEngine(self.graph_scorer)
 
     def create(self, payload: dict) -> Tuple[dict, bool]:
         """Analisa e registra um Pix. Devolve (veredito, criado_agora).
@@ -50,6 +44,7 @@ class PixTransactionController(BaseController):
         O "id" do payload é a chave de idempotência: reenviar o mesmo Pix
         devolve o veredito já dado, em vez de analisar (e gravar) de novo.
         """
+        # ETAPA 0 — portaria (o schema já foi validado no resource)
         data = PixTransactionInput.from_payload(payload)
         self.logger.debug(f"Processando transação PIX {data.transaction_id} para antifraude")
 
@@ -59,11 +54,13 @@ class PixTransactionController(BaseController):
 
         source_account = self.account_repository.upsert(data.source_account)
         destination_account = self.account_repository.upsert(data.destination_account)
-        self._warn_on_owner_mismatch(source_account, data.source_account, "source_account")
-        self._warn_on_owner_mismatch(destination_account, data.destination_account, "destination_account")
 
-        decision = self._evaluate_antifraud(data, source_account, destination_account)
+        # ETAPAS 1 a 5 — contexto, regras, grafo, score e decisão. Rodam ANTES
+        # de gravar o Pix: o histórico e o grafo enxergam só o passado.
+        antifraud_context = self.context_builder.build(data, source_account, destination_account)
+        verdict = self.engine.evaluate(antifraud_context)
 
+        # ETAPA 6 — gravação
         geolocation = None
         if data.geolocation is not None:
             geolocation = self.geolocation_repository.create(
@@ -76,9 +73,18 @@ class PixTransactionController(BaseController):
             source_account=source_account,
             destination_account=destination_account,
             geolocation=geolocation,
+            risk_score=verdict.risk_score,
         )
-        metadata = self.metadata_repository.create()
-        self.status_result_history_repository.create(transaction=tx, status=decision, metadata=metadata)
+        metadata = self.metadata_repository.create(
+            risk_score=verdict.risk_score,
+            rules_score=verdict.rules_score,
+            graph_source_score=verdict.graph_source_score,
+            graph_destination_score=verdict.graph_destination_score,
+            rule_hits=[hit.to_dict() for hit in verdict.hits],
+            graph_evidence=verdict.graph_evidence,
+            engine_version=antifraud_config.ENGINE_VERSION,
+        )
+        self.status_result_history_repository.create(transaction=tx, status=verdict.status, metadata=metadata)
 
         try:
             # O flush é o INSERT de fato: a partir daqui key_pix, ids e
@@ -91,6 +97,15 @@ class PixTransactionController(BaseController):
             self.session.rollback()
             existing = self.transaction_repository.get_by_transaction_id(data.transaction_id)
             return PixTransactionDTO.obj_to_dict(existing), False
+
+        # Risco aprendido e degree dos nós: só depois que o Pix entrou, e na
+        # mesma transação de banco (ou vai tudo, ou não vai nada).
+        self.graph_scorer.learn(antifraud_context, verdict)
+
+        self.logger.info(
+            f"Pix {data.transaction_id}: {verdict.status} risk_score={verdict.risk_score} "
+            + f"motivos={[hit.reason for hit in verdict.hits]}"
+        )
 
         # Monta o DTO antes do commit conforme padrão arquitetural do projeto
         result_dto = PixTransactionDTO.obj_to_dict(tx)
@@ -107,15 +122,6 @@ class PixTransactionController(BaseController):
             raise NotFoundPixTransaction(transaction_id)
 
         return PixTransactionDTO.obj_to_dict(tx)
-
-    def _warn_on_owner_mismatch(self, node: AccountNode, account: AccountInput, field: str) -> None:
-        # Mesma conta, outro titular: não é erro de entrada, é sinal para a
-        # regra 3 (vínculo conta x documento). Por enquanto só fica no log.
-        if node.document_number != account.document_number:
-            self.logger.warning(
-                f"{field}: conta {node.participant}/{node.branch}/{node.account_number} "
-                + "já registrada com outro titular"
-            )
 
 
 def _violated_constraint(error: IntegrityError):

@@ -17,8 +17,13 @@ CREATE TABLE account_node (
     document_number VARCHAR(14)  NOT NULL,                -- CPF (11) ou CNPJ (14), só dígitos/letras
     person_type     CHAR(2)      NOT NULL CHECK (person_type IN ('PF', 'PJ')),
     opening_date    TIMESTAMPTZ,                          -- vem do DICT (Account.OpeningDate)
-    external_risk   NUMERIC(5, 4) NOT NULL DEFAULT 0 CHECK (external_risk BETWEEN 0 AND 1),  -- risco vindo do DICT
-    risk_score      NUMERIC(5, 4) NOT NULL DEFAULT 0 CHECK (risk_score BETWEEN 0 AND 1),     -- R(u) usado no grafo
+    -- Fato: o que o DICT diz do titular (1.0 marcado, 0.6 em análise, 0.3 sinal fraco). Não decai.
+    external_risk   NUMERIC(5, 4) NOT NULL DEFAULT 0 CHECK (external_risk BETWEEN 0 AND 1),
+    -- Estimativa: risco aprendido com os Pix da conta. Decai com o tempo a
+    -- partir de risk_updated_at (o decaimento é calculado na leitura).
+    -- No grafo, R(u) = max(external_risk, risk_score decaído).
+    risk_score      NUMERIC(5, 4) NOT NULL DEFAULT 0 CHECK (risk_score BETWEEN 0 AND 1),
+    risk_updated_at TIMESTAMPTZ,
     degree          INT          NOT NULL DEFAULT 0 CHECK (degree >= 0),                     -- nº de contrapartes distintas
     created_at      TIMESTAMPTZ  NOT NULL DEFAULT now(),
     updated_at      TIMESTAMPTZ  NOT NULL DEFAULT now(),
@@ -70,7 +75,7 @@ CREATE TABLE transaction_history (
     CONSTRAINT uq_transaction_history_transaction_id UNIQUE (transaction_id)
 );
 
--- Janelas de tempo por conta (velocity, limites diários/noturnos) e
+-- Janelas de tempo por conta (velocity, limite diário, padrão noturno) e
 -- travessia do grafo nos dois sentidos.
 CREATE INDEX ix_transaction_history_source_account_date
     ON transaction_history (source_account_id, transaction_date DESC);

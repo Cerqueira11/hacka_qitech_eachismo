@@ -9,7 +9,7 @@ from middlewares import (
     register_request_logger_middleware,
     register_session_manager_middleware,
 )
-from resources import HealthCheckResource, PixTransactionResource
+from resources import HealthCheckResource, PixTransactionResource, RegistrationResource
 from utils.logger import setup_logging
 
 
@@ -142,6 +142,20 @@ def create_app() -> FastAPI:
         "/pix/transaction/{id}",
         pix_transaction_resource.on_get_by_id,
         methods=["GET"]
+    )
+
+    # Cadastros que alimentam as regras antifraude: dispositivo (R1) e
+    # vínculo CPF <-> CNPJ (R4).
+    registration_resource = RegistrationResource()
+    application.add_api_route(
+        "/device",
+        registration_resource.on_post_device,
+        methods=["POST"]
+    )
+    application.add_api_route(
+        "/person_link",
+        registration_resource.on_post_person_link,
+        methods=["POST"]
     )
     register_error_handlers(application)
 

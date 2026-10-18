@@ -1,0 +1,25 @@
+{
+  "title": "PostPersonLink",
+  "description": "Registra o vínculo entre um CPF e um CNPJ (regra R4, vinculados).",
+  "type": "object",
+  "properties": {
+    "cpf": {
+      "type": "string",
+      "minLength": 11,
+      "maxLength": 14,
+      "pattern": "^[0-9.-]+$"
+    },
+    "cnpj": {
+      "type": "string",
+      "minLength": 14,
+      "maxLength": 18,
+      "pattern": "^[0-9A-Za-z./-]+$"
+    },
+    "relation": {
+      "type": "string",
+      "enum": ["PARTNER", "SOLE_PROPRIETOR", "ADMINISTRATOR"]
+    }
+  },
+  "required": ["cpf", "cnpj", "relation"],
+  "additionalProperties": false
+}
