@@ -1,4 +1,10 @@
-"""R3 — Vínculo conta x documento. Não confere: reject."""
+"""R3 — Vínculo conta x documento (C2). Não consulta o DICT.
+
+O payload não diz se o Pix foi por chave ou manual, e o DICT não busca por
+conta. A R3 compara o payload com o account_node, e só um nó VERIFICADO (que
+já foi origem, ou seja, conta nossa) tem documento para divergir. Por isso a
+primeira transação de uma conta nunca cai aqui.
+"""
 
 from typing import List
 
@@ -7,23 +13,15 @@ from antifraud.context import AntifraudContext
 from antifraud.result import Action, RuleResult
 
 RULE = "R3"
-
-
-def _reject(reason: str) -> RuleResult:
-    return RuleResult(RULE, reason, action=Action.REJECT, floor=config.OWNER_MISMATCH_FLOOR)
+REASON = "vinculo_nao_confere"
 
 
 def evaluate(ctx: AntifraudContext, previous: List[RuleResult]) -> List[RuleResult]:
-    # O DICT é a fonte oficial: ele fala primeiro. Sem resposta dele, a parte
-    # DICT fica de fora e R4 pede o 2FA.
-    if ctx.dict_available:
-        if ctx.destination_entry is None:
-            return [_reject("conta_nao_encontrada")]
-        if ctx.destination_entry.owner_document_number != ctx.data.destination_account.document_number:
-            return [_reject("vinculo_nao_confere")]
-
-    # A conta já estava no grafo com outro titular.
-    if ctx.source_owner_conflict or ctx.destination_owner_conflict:
-        return [_reject("vinculo_nao_confere")]
-
-    return []
+    hits = []
+    if ctx.source_owner_conflict:
+        # Conta nossa com outro titular no payload: indício forte.
+        hits.append(RuleResult(RULE, REASON, action=Action.REJECT, floor=config.OWNER_MISMATCH_FLOOR))
+    if ctx.destination_owner_conflict:
+        # Conta conhecida com outro documento: pode ser erro de digitação de quem paga.
+        hits.append(RuleResult(RULE, REASON, action=Action.REJECT))
+    return hits

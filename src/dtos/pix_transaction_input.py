@@ -1,6 +1,8 @@
+import hashlib
 import ipaddress
+import json
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 from constants import INSTITUTION_ISPB
@@ -42,6 +44,32 @@ class PixTransactionInput:
     ip: str
     geolocation: Optional[GeolocationInput]
 
+    def canonical_sha256(self) -> str:
+        """Hash do payload NORMALIZADO, não do JSON cru (C4).
+
+        Um retry com agência "1" em vez de "0001", CPF com máscara, campos em
+        outra ordem ou a mesma data em outro fuso dá o mesmo hash: não vira 409.
+        """
+        canonical = {
+            "id": self.transaction_id,
+            "amount": self.amount,
+            "transaction_date": _utc_iso(self.transaction_date),
+            "source_account": _account_canonical(self.source_account),
+            "destination_account": _account_canonical(self.destination_account),
+            "source": {
+                "device_id": self.device_id,
+                "channel": self.channel,
+                "ip": self.ip,
+                "geolocation": (
+                    None
+                    if self.geolocation is None
+                    else {"latitude": float(self.geolocation.latitude), "longitude": float(self.geolocation.longitude)}
+                ),
+            },
+        }
+        raw = json.dumps(canonical, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+        return hashlib.sha256(raw.encode("utf-8")).hexdigest()
+
     @staticmethod
     def from_payload(payload: dict) -> "PixTransactionInput":
         transaction_date = _parse_aware_datetime(payload["transaction_date"])
@@ -71,6 +99,20 @@ class PixTransactionInput:
             ip=_parse_ip(source["ip"]),
             geolocation=geolocation,
         )
+
+
+def _utc_iso(value: datetime) -> str:
+    return value.astimezone(timezone.utc).isoformat()
+
+
+def _account_canonical(account: AccountInput) -> dict:
+    return {
+        "participant": account.participant,
+        "branch": account.branch,
+        "account_number": account.account_number,
+        "document_number": account.document_number,
+        "opening_date": _utc_iso(account.opening_date),
+    }
 
 
 def _parse_aware_datetime(value: str) -> Optional[datetime]:

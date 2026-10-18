@@ -4,7 +4,7 @@ from models.base import Base
 
 
 class RegisteredDevice(Base):
-    """Dispositivo cadastrado por um cliente (CPF/CNPJ). Usado pela regra de dispositivo novo."""
+    """Dispositivo cadastrado por um cliente (CPF/CNPJ). A R1 não lê mais esta tabela (S2)."""
 
     __tablename__ = "registered_device"
 

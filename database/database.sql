@@ -15,6 +15,9 @@ CREATE TABLE account_node (
     branch          VARCHAR(4)   NOT NULL,                -- normalizada com zeros à esquerda: '0001'
     account_number  VARCHAR(20)  NOT NULL,                -- só dígitos, sem zeros à esquerda
     document_number VARCHAR(14)  NOT NULL,                -- CPF (11) ou CNPJ (14), só dígitos/letras
+    -- true quando a conta já foi ORIGEM (conta nossa): o documento é o do
+    -- nosso cadastro. Destino nunca verifica nem altera o documento (R3, C2).
+    document_verified BOOLEAN    NOT NULL DEFAULT false,
     person_type     CHAR(2)      NOT NULL CHECK (person_type IN ('PF', 'PJ')),
     opening_date    TIMESTAMPTZ,                          -- vem do DICT (Account.OpeningDate)
     -- Fato: o que o DICT diz do titular (1.0 marcado, 0.6 em análise, 0.3 sinal fraco). Não decai.
@@ -44,7 +47,8 @@ CREATE TABLE person_link (
 
 CREATE INDEX ix_person_link_cnpj ON person_link (cnpj);
 
--- Dispositivos cadastrados do cliente (regra 1).
+-- Dispositivos cadastrados do cliente. Alimentada por POST /device.
+-- A R1 NÃO lê mais esta tabela: pergunta à API externa de dispositivo (S2).
 CREATE TABLE registered_device (
     document_number VARCHAR(14) NOT NULL,
     device_id       VARCHAR(50) NOT NULL,
@@ -70,6 +74,12 @@ CREATE TABLE transaction_history (
     source_ip              INET        NOT NULL,          -- aceita IPv4 e IPv6
     source_geolocation     UUID REFERENCES geolocation (id_geolocation),
     risk_score             NUMERIC(5, 4) CHECK (risk_score BETWEEN 0 AND 1),  -- peso da aresta
+    -- SHA-256 do payload normalizado: mesmo "id" com outro corpo -> 409 (C4).
+    -- NULL só em linhas gravadas antes da v2.
+    payload_sha256         CHAR(64),
+    -- Resposta da API de dispositivo no momento do Pix (S2): true/false, ou
+    -- NULL quando ela estava indisponível. Base da soma diária da R1.
+    device_registered      BOOLEAN,
     transaction_date       TIMESTAMPTZ NOT NULL DEFAULT now(),
     created_at             TIMESTAMPTZ NOT NULL DEFAULT now(),
     CONSTRAINT uq_transaction_history_transaction_id UNIQUE (transaction_id)

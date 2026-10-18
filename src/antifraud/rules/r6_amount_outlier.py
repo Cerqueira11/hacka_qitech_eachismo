@@ -1,4 +1,7 @@
-"""R6 — Valor fora do padrão da conta (z-score em escala log)."""
+"""R6 — Valor fora do padrão da conta (z-score em escala log).
+
+Mede desvio de valor, como a R2: no score vale o maior peso entre as duas.
+"""
 
 from typing import List
 
@@ -16,11 +19,16 @@ def evaluate(ctx: AntifraudContext, previous: List[RuleResult]) -> List[RuleResu
 
     if len(amounts) < config.AMOUNT_MIN_HISTORY:
         if amount > config.AMOUNT_NO_HISTORY_LIMIT:
-            return [RuleResult(RULE, "valor_alto_sem_historico", weight=config.AMOUNT_NO_HISTORY_WEIGHT)]
+            return [
+                RuleResult(
+                    RULE, "valor_alto_sem_historico", weight=config.AMOUNT_NO_HISTORY_WEIGHT,
+                    family=config.AMOUNT_DEVIATION_FAMILY,
+                )
+            ]
         return []
 
     z = log_zscore(amount, amounts, config.LOG_STD_FLOOR)
     if z is not None and z > config.AMOUNT_Z_THRESHOLD:
         weight = min(config.AMOUNT_MAX_WEIGHT, config.AMOUNT_WEIGHT_PER_Z * (z - 2))
-        return [RuleResult(RULE, "valor_atipico", weight=weight)]
+        return [RuleResult(RULE, "valor_atipico", weight=weight, family=config.AMOUNT_DEVIATION_FAMILY)]
     return []

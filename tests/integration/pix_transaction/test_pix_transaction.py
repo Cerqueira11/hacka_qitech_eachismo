@@ -46,9 +46,43 @@ class TestPixTransaction:
         status, first = RequestGenerator.POST_pix_transaction(payload)
         assert status == 201
 
-        # Mesmo "id" com outro valor: idempotência ganha, não reanalisa.
-        payload["amount"] = 1
         status, second = RequestGenerator.POST_pix_transaction(payload)
+
+        assert status == 200
+        assert second == first
+
+    def test_same_id_with_other_amount_is_conflict(self):
+        """T4: mesmo id com outro corpo não herda o veredito antigo (C4)."""
+        payload = PayloadGenerator.create_pix_transaction_payload()
+        status, _ = RequestGenerator.POST_pix_transaction(payload)
+        assert status == 201
+
+        status, response = RequestGenerator.POST_pix_transaction({**payload, "amount": payload["amount"] + 1})
+
+        assert status == 409
+        assert response["code"] == "QIT001016"
+
+    def test_same_id_with_equivalent_payload_returns_same_verdict(self):
+        """T12: agência "1" x "0001", CPF com/sem máscara, zeros à esquerda e outro fuso: mesmo Pix."""
+        payload = PayloadGenerator.create_pix_transaction_payload(
+            source_branch="0001", transaction_date="2026-10-17T22:15:00-03:00"
+        )
+        status, first = RequestGenerator.POST_pix_transaction(payload)
+        assert status == 201
+
+        source_account = dict(payload["source_account"])
+        source_account["branch"] = "1"
+        source_account["account_number"] = "000" + source_account["account_number"]
+        source_account["owner"] = {"document_number": "".join(c for c in source_account["owner"]["document_number"] if c.isdigit())}
+        retry = {
+            "source": payload["source"],
+            "transaction_date": "2026-10-18T01:15:00+00:00",
+            "destination_account": payload["destination_account"],
+            "source_account": source_account,
+            "amount": payload["amount"],
+            "id": payload["id"],
+        }
+        status, second = RequestGenerator.POST_pix_transaction(retry)
 
         assert status == 200
         assert second == first

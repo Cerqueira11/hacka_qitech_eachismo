@@ -1,6 +1,6 @@
 import uuid
 
-from sqlalchemy import CheckConstraint, Column, DateTime, Integer, Numeric, String, UniqueConstraint, func
+from sqlalchemy import Boolean, CheckConstraint, Column, DateTime, Integer, Numeric, String, UniqueConstraint, func
 from sqlalchemy.dialects.postgresql import UUID
 
 from models.base import Base
@@ -20,6 +20,8 @@ class AccountNode(Base):
     branch = Column(String(4), nullable=False)
     account_number = Column(String(20), nullable=False)
     document_number = Column(String(14), nullable=False, index=True)
+    # true quando a conta já foi origem (conta nossa): só a origem verifica o documento (C2).
+    document_verified = Column(Boolean, nullable=False, default=False, server_default="false")
     person_type = Column(String(2), nullable=False)
     opening_date = Column(DateTime(timezone=True), nullable=True)
     external_risk = Column(Numeric(5, 4), nullable=False, default=0, server_default="0")

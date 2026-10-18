@@ -19,6 +19,8 @@ class TransactionRepository:
         destination_account: AccountNode,
         geolocation: Optional[Geolocation] = None,
         risk_score: Optional[float] = None,
+        payload_sha256: Optional[str] = None,
+        device_registered: Optional[bool] = None,
     ) -> TransactionHistory:
         tx = TransactionHistory(
             transaction_id=data.transaction_id,
@@ -28,6 +30,8 @@ class TransactionRepository:
             source_ip=data.ip,
             transaction_date=data.transaction_date,
             risk_score=risk_score,
+            payload_sha256=payload_sha256,
+            device_registered=device_registered,
         )
         # Relações em vez de ids: as chaves geradas no INSERT só existem
         # depois do flush, e o SQLAlchemy resolve a ordem sozinho.

@@ -53,6 +53,12 @@ services:
       IF_WEBHOOK_URL: ${IF_WEBHOOK_URL:-}
       IF_WEBHOOK_TOKEN: ${IF_WEBHOOK_TOKEN:-default_token}
       IF_WEBHOOK_TIMEOUT: ${IF_WEBHOOK_TIMEOUT:-5}
+      # API externa de dispositivo cadastrado (R1, decisao S2). Localmente
+      # quem responde e o mockserver abaixo: sem expectativa cadastrada ele
+      # devolve 404, que a R1 le como "dispositivo nao cadastrado".
+      DEVICE_API_URL: ${DEVICE_API_URL:-http://mockserver:1080}
+      DEVICE_API_INTERNAL_TOKEN: ${DEVICE_API_INTERNAL_TOKEN:-default_token}
+      DEVICE_API_TIMEOUT: ${DEVICE_API_TIMEOUT:-0.2}
     volumes:
       # Monta o codigo pra dentro do container: salvou o arquivo,
       # a API recarrega sozinha (o --reload ali embaixo).
@@ -73,6 +79,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      mockserver:
+        condition: service_started
 
   # O agendador dos 8 jobs (decisao 4.2). Fica DESLIGADO no `docker compose up`
   # de sempre, de proposito: os testes de job contam o que cada execucao
@@ -103,6 +111,14 @@ services:
     depends_on:
       db:
         condition: service_healthy
+
+  # Mock da API externa de dispositivo (R1). Os testes cadastram as
+  # respostas em PUT /mockserver/expectation (tests/utils/device_api_mock.py).
+  # Sem expectativa: 404 -> dispositivo nao cadastrado.
+  mockserver:
+    image: mockserver/mockserver:5.15.0
+    ports:
+      - "${MOCK_PORT:-1080}:1080"
 
   db:
     build: ./database/.
