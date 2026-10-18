@@ -1,0 +1,25 @@
+{
+  "id": "demo-unknown-result-destination-20261017",
+  "amount": 5400,
+  "transaction_date": "2026-10-17T16:20:00-03:00",
+  "source_account": {
+    "participant": "60701190",
+    "branch": "0001",
+    "account_number": "2002001",
+    "opening_date": "2018-06-01T09:00:00-03:00",
+    "owner": {"document_number": "11144477735"}
+  },
+  "destination_account": {
+    "participant": "60701190",
+    "branch": "0001",
+    "account_number": "5100001",
+    "opening_date": "2024-02-01T09:00:00-03:00",
+    "owner": {"document_number": "16155940789"}
+  },
+  "source": {
+    "device_id": "demo-device-stable-001",
+    "channel": "app",
+    "ip": "198.51.100.52",
+    "geolocation": {"latitude": -23.5505, "longitude": -46.6333}
+  }
+}

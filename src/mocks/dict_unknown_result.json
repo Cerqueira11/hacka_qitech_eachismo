@@ -1,0 +1,60 @@
+{
+  "title": "unknown_result",
+  "_doc": [
+    "Fixture alternativo para simular retornos de fraude desconhecidos do DICT.",
+    "Os documentos e contas abaixo conectam os retornos ao grafo criado pelo seed.",
+    "UnknownFrauds e notificacao sem SituationType viram sinais fracos, nao rejeicao automatica."
+  ],
+  "unavailable_documents": ["81618495950"],
+  "entries": {
+    "60701190/0001/99999": null,
+    "60701190/0001/88888": {"Owner": {"TaxIdNumber": "31034131656"}},
+    "60701190/0001/2002001": {"Owner": {"TaxIdNumber": "11144477735"}},
+    "60701190/0001/5100001": {"Owner": {"TaxIdNumber": "16155940789"}},
+    "60701190/0001/5100002": {"Owner": {"TaxIdNumber": "16155940789"}}
+  },
+  "persons": {
+    "52998224725": {
+      "_persona": "unknown_result: origem com marcador UNKNOWN recebido do DICT",
+      "FraudMarkers": {"UnknownFrauds": {"d90": 0, "m12": 1, "m60": 1}},
+      "InfractionReports": {"OpenReports": 0}
+    },
+    "11144477735": {
+      "_persona": "unknown_result: destino com notificacao aberta sem tipo conhecido",
+      "FraudMarkers": {},
+      "InfractionReports": {"OpenReports": 1}
+    },
+    "16155940789": {
+      "_persona": "unknown_result: destino com marcacao UNKNOWN de baixa confianca",
+      "FraudMarkers": {"UnknownFrauds": {"d90": 0, "m12": 2, "m60": 2}},
+      "InfractionReports": {"OpenReports": 0}
+    },
+    "10433218100": {
+      "_persona": "laranja: Pix para ele e rejeitado (R4 destino_marcado)",
+      "FraudMarkers": {"MuleAccounts": {"d90": 1, "m12": 2, "m60": 2}},
+      "InfractionReports": {"OpenReports": 0}
+    },
+    "96001338914": {
+      "_persona": "golpista: Pix dele e rejeitado (R4 origem_marcada)",
+      "FraudMarkers": {"ScammerAccounts": {"d90": 0, "m12": 1, "m60": 1}},
+      "InfractionReports": {"OpenReports": 0}
+    },
+    "08386379499": {
+      "_persona": "em analise: Pix para ele pede 2FA (R4 destino_em_analise)",
+      "FraudMarkers": {},
+      "InfractionReports": {"OpenReports": 1},
+      "OpenInfractions": [{"SituationType": "SCAM", "Status": "OPEN"}]
+    },
+    "02654235114": {
+      "_persona": "conta roubada: Pix dele pede 2FA (R4 origem_conta_roubada)",
+      "FraudMarkers": {},
+      "InfractionReports": {"OpenReports": 1},
+      "OpenInfractions": [{"SituationType": "ACCOUNT_TAKEOVER", "Status": "ACKNOWLEDGED"}]
+    },
+    "92832764000161": {
+      "_persona": "CNPJ laranja para testes de vinculo pessoa",
+      "FraudMarkers": {"MuleAccounts": {"d90": 1, "m12": 1, "m60": 1}},
+      "InfractionReports": {"OpenReports": 0}
+    }
+  }
+}

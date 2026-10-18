@@ -37,6 +37,8 @@ services:
       INTERNAL_TOKEN: ${INTERNAL_TOKEN:-default_token}
       # ISPB desta instituicao: identifica a conta de origem no grafo antifraude.
       INSTITUTION_ISPB: ${INSTITUTION_ISPB:-00000000}
+      # Fixture do DICT simulado; use /app/mocks/dict_unknown_result.json para variar os retornos.
+      DICT_MOCK_FILE: ${DICT_MOCK_FILE:-/app/mocks/dict_mock.json}
       # A API de boletos (assunto do sabado 4). Variavel que nao esta
       # nesta lista NAO CHEGA no container: o compose repassa o que
       # esta escrito aqui, e mais nada. Sem estas tres linhas, mexer

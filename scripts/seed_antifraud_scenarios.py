@@ -24,7 +24,10 @@ LOGGER = logging.getLogger("seed_antifraud")
 
 
 def transaction_date(payload: dict) -> datetime:
-    return datetime.fromisoformat(payload["transaction_date"])
+    parsed = datetime.fromisoformat(payload["transaction_date"])
+    if parsed.tzinfo is None or parsed.utcoffset() is None:
+        raise RuntimeError(f"Data sem fuso horario no payload {payload.get('id')}")
+    return parsed
 
 
 def order_payloads(payloads: list[tuple[Path, dict]], group: str) -> list[tuple[Path, dict]]:
@@ -58,6 +61,52 @@ def validate_scenarios(payloads: list[tuple[Path, dict]]) -> None:
         validate(instance=payload, schema=transaction_schema)
         PixTransactionInput.from_payload(payload)
         LOGGER.info("Payload valido: %s", path.name)
+
+
+def validate_database_chronology(database_url: str, payloads: list[tuple[Path, dict]]) -> None:
+    from sqlalchemy import bindparam, create_engine, text
+
+    ids = [payload["id"] for _, payload in payloads]
+    existing_query = text(
+        "SELECT transaction_id, transaction_date "
+        "FROM transaction_history WHERE transaction_id IN :ids"
+    ).bindparams(bindparam("ids", expanding=True))
+    latest_query = text("SELECT MAX(transaction_date) FROM transaction_history")
+    engine = create_engine(database_url)
+    try:
+        with engine.connect() as connection:
+            existing_rows = connection.execute(existing_query, {"ids": ids}).all()
+            latest_date = connection.execute(latest_query).scalar_one()
+    finally:
+        engine.dispose()
+
+    existing_dates = {row.transaction_id: row.transaction_date for row in existing_rows}
+    for path, payload in payloads:
+        stored_date = existing_dates.get(payload["id"])
+        if stored_date is not None and stored_date != transaction_date(payload):
+            raise RuntimeError(
+                f"O ID {payload['id']} ({path.name}) ja existe no banco com outra transaction_date"
+            )
+
+    missing_dates = [
+        transaction_date(payload)
+        for _, payload in payloads
+        if payload["id"] not in existing_dates
+    ]
+    if missing_dates and latest_date is not None and min(missing_dates) < latest_date:
+        raise RuntimeError(
+            f"Seed bloqueado: ha transacoes novas com data anterior a ultima data do banco "
+            f"({latest_date.isoformat()}). Use um banco vazio ou ajuste as datas dos fixtures."
+        )
+
+    if not missing_dates:
+        LOGGER.info("Todos os IDs do seed ja existem com as mesmas datas; reexecucao idempotente")
+    else:
+        LOGGER.info(
+            "Cronologia do banco aprovada: primeira data nova=%s; ultima data persistida=%s",
+            min(missing_dates).isoformat(),
+            latest_date.isoformat() if latest_date else "banco vazio",
+        )
 
 
 def post_json(session, url: str, payload: dict, timeout: float):
@@ -164,6 +213,14 @@ def main() -> int:
         default=os.environ.get("INTERNAL_TOKEN", "default_token"),
         help="Token interno (padrao: INTERNAL_TOKEN ou default_token)",
     )
+    parser.add_argument(
+        "--database-url",
+        default=os.environ.get(
+            "SEED_DATABASE_URL",
+            "postgresql+psycopg2://bootcamp:bootcamp@127.0.0.1:5432/bootcamp",
+        ),
+        help="URL do PostgreSQL acessivel pelo host; pode usar SEED_DATABASE_URL",
+    )
     parser.add_argument("--timeout", type=float, default=10, help="Timeout HTTP em segundos")
     parser.add_argument(
         "--validate-only",
@@ -211,6 +268,8 @@ def main() -> int:
         LOGGER.info("Validacao local concluida: %s transacoes historicas e %s cenarios", len(history_payloads), len(scenario_payloads))
         return 0
 
+    payloads_to_seed = history_payloads if args.seed_only else payloads
+    validate_database_chronology(args.database_url, payloads_to_seed)
     LOGGER.info("Iniciando seed em %s", args.base_url)
     seed(args.base_url, args.token, args.timeout, history_payloads, scenario_payloads, args.seed_only)
     LOGGER.info("Seed concluido: historico carregado e %s cenarios processados", 0 if args.seed_only else len(scenario_payloads))
