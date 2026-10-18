@@ -143,6 +143,16 @@ def create_app() -> FastAPI:
         pix_transaction_resource.on_get_by_id,
         methods=["GET"]
     )
+    application.add_api_route(
+        "/pix/transaction/{id}/2fa",
+        pix_transaction_resource.on_post_2fa,
+        methods=["POST"]
+    )
+    application.add_api_route(
+        "/pix/transaction/{id}/fraud",
+        pix_transaction_resource.on_post_fraud,
+        methods=["POST"]
+    )
 
     # Cadastro de vínculo CPF <-> CNPJ (R4). Dispositivo NÃO tem rota: a
     # tabela registered_device é cache interno, gravado só quando a API

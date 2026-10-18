@@ -89,6 +89,17 @@ DEVICE_SHARED_WINDOW = timedelta(hours=24)
 DEVICE_SHARED_MIN_ACCOUNTS = 3
 DEVICE_SHARED_WEIGHT = 0.30
 
+# N1 — IP compartilhado (mesmo IP em >= 3 contas de origem em 24h)
+IP_SHARED_WINDOW = timedelta(hours=24)
+IP_SHARED_MIN_ACCOUNTS = 3
+IP_SHARED_WEIGHT = 0.30
+
+# N2 — Combo de tomada de conta (account takeover)
+TAKEOVER_COMBO_WEIGHT = 0.40
+
+# D2 — TTL para 2FA pendente
+TWO_FACTOR_TTL_MINUTES = 15
+
 # Sinais extras
 NEW_ACCOUNT_DAYS = 30
 NEW_DESTINATION_ACCOUNT_WEIGHT = 0.20
