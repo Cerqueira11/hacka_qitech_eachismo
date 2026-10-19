@@ -213,6 +213,7 @@ Sem `.env`, os testes falam com a API em `0.0.0.0:3000` e com o MockServer em `0
 
 Ficaram fora do escopo do desafio (que pede só o `POST` e o `GET` do endpoint), mas o modelo de dados já comporta os dois: `status_result_history` guarda uma linha por status e o grafo já sabe atualizar o risco dos nós.
 
+
 * **Resultado do 2FA volta para o motor:** o cliente confirmou ou negou, e isso vira um novo status no histórico. Só seria aceito para Pix que estão em `two_factor_required`; um Pix rejeitado nunca pode ser aprovado por esse caminho.
 * **Fraude confirmada (MED / contestação) como rótulo:** a aresta do Pix passa a pesar 1.0 e a conta de destino recebe `external_risk = 1.0`. O grafo passa a aprender com fraudes reais, e não só com o que as regras viram, e quem estiver a até 3 saltos dessa conta herda o risco.
-* **Calibração dos parâmetros:** os limiares e pesos em `src/antifraud/config.py` são ponto de partida. Com fraudes rotuladas, dá para ajustá-los olhando taxa de falso-positivo por regra.
+* **Calibração dos parâmetros:** os limiares e pesos em `src/antifraud/config.py` são ponto de partida. Com fraudes rotuladas, dá para ajustá-los explorando modelos de machine learning.
